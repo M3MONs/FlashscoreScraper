@@ -38,7 +38,7 @@ def scrape_event_info_cmd(event_url: str, sport: str | None = None, engine: str 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Flashscore Scraper")
-    subparsers = parser.add_subparsers(dest="command", help="Dostępne komendy")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     odds_parser = subparsers.add_parser("odds", help="Scrap odds")
     odds_parser.add_argument("url", help="URL Flashscore")
