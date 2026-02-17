@@ -12,6 +12,7 @@ _registry: Dict[str, Type[BaseParser]] = {}
 def register_parser(sport_type: str) -> Callable[..., type[BaseParser]]:
     """Decorator to register a parser class for a specific sport type"""
     def decorator(cls: Type[BaseParser]) -> Type[BaseParser]:
+        cls.sport_type = sport_type
         _registry[sport_type] = cls
         return cls
 
