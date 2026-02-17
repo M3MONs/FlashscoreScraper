@@ -1,7 +1,9 @@
 from typing import Dict, Any
 from parsers.base_parser import BaseParser
+from parsers.parser_factory import register_parser
 
 
+@register_parser("football")
 class FootballParser(BaseParser):
     def __init__(self) -> None:
         super().__init__()
@@ -17,11 +19,7 @@ class FootballParser(BaseParser):
     def parse_odds(self, url, data) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football odds from URL: {url}")
         return {"odds": "football_odds_data"}
-    
+
     def get_odds_urls(self, event_url: str) -> Dict[str, str]:
         self.logger.debug(f"Getting football odds URLs from event URL: {event_url}")
-        return {
-            "1X2": f"{event_url}/odds/1x2",
-            "Over/Under": f"{event_url}/odds/over-under",
-            "Handicap": f"{event_url}/odds/handicap"
-        }
+        return {"1X2": f"{event_url}/odds/1x2", "Over/Under": f"{event_url}/odds/over-under", "Handicap": f"{event_url}/odds/handicap"}
