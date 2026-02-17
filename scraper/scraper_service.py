@@ -1,8 +1,11 @@
 from typing import Dict, Any
 from models import OddsResult, FetchOddsResponse
 from engines.base_engine import BaseEngine
+from odds.odds_factory import get_odds_enum
 from parsers.base_parser import BaseParser
 import logging
+
+from utils.url_builder import FlashscoreUrlBuilder
 
 
 class ScraperService:
@@ -43,7 +46,8 @@ class ScraperService:
     def _get_odds_urls_safely(self, event_url: str) -> Dict[str, str]:
         """Securely get odds URLs, handling any exceptions that may occur."""
         try:
-            return self.parser.get_odds_urls(event_url)
+            odds_types = get_odds_enum(self.parser.sport_type)
+            return {odd_type.value: FlashscoreUrlBuilder.build_odds_url(event_url, odd_type.value.lower()) for odd_type in odds_types}
         except Exception as e:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
             return {}
