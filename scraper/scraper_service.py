@@ -54,13 +54,13 @@ class ScraperService:
 
     def _fetch_odds_types(self, odds_urls: Dict[str, str]) -> Dict[str, OddsResult]:
         """Fetch odds for each odds type, handling exceptions for each individual fetch."""
-        return {odds_type: self._fetch_single_odds(odds_url) for odds_type, odds_url in odds_urls.items()}
+        return {odds_type: self._fetch_single_odds(odds_url, odds_type) for odds_type, odds_url in odds_urls.items()}
 
-    def _fetch_single_odds(self, odds_url: str) -> OddsResult:
+    def _fetch_single_odds(self, odds_url: str, odds_type: str) -> OddsResult:
         """Fetch odds from a single URL, handling any exceptions that may occur."""
         try:
             page_content = self.engine.get_page(odds_url)
-            parsed_odds = self.parser.parse_odds(odds_url, page_content)
+            parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type)
             return OddsResult(url=odds_url, data=parsed_odds)
         except Exception as e:
             error_msg = f"Failed to fetch odds from {odds_url}: {e}"
