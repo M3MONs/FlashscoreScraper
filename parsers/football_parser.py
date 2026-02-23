@@ -15,7 +15,7 @@ def register_odds_parser(odds_type: str) -> Callable[..., Callable[..., Any]]:
     return decorator
 
 
-@register_parser("football")
+@register_parser(Sport.FOOTBALL.value)
 class FootballParser(BaseParser):
     def __init__(self) -> None:
         super().__init__()
