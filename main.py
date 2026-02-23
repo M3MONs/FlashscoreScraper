@@ -43,19 +43,19 @@ def main() -> None:
     odds_parser = subparsers.add_parser("odds", help="Scrap odds")
     odds_parser.add_argument("url", help="URL Flashscore")
     odds_parser.add_argument("--sport", default=None, help="Sport type (football, tennis). If not provided, detected from URL")
-    odds_parser.add_argument("--engine", default="curl", help="Engine type (default: curl)")
+    odds_parser.add_argument("--engine", default="playwright", help="Engine type (default: playwright)")
     odds_parser.add_argument("--timeout", type=int, default=10, help="Timeout in seconds")
 
     event_parser = subparsers.add_parser("event", help="Scrap event information")
     event_parser.add_argument("url", help="URL Flashscore")
     event_parser.add_argument("--sport", default=None, help="Sport type")
-    event_parser.add_argument("--engine", default="curl", help="Engine type")
+    event_parser.add_argument("--engine", default="playwright", help="Engine type")
     event_parser.add_argument("--timeout", type=int, default=10, help="Timeout in seconds")
 
     event_info_parser = subparsers.add_parser("event-info", help="Scrap context information")
     event_info_parser.add_argument("url", help="URL Flashscore")
     event_info_parser.add_argument("--sport", default=None, help="Sport type")
-    event_info_parser.add_argument("--engine", default="curl", help="Engine type")
+    event_info_parser.add_argument("--engine", default="playwright", help="Engine type")
     event_info_parser.add_argument("--timeout", type=int, default=10, help="Timeout in seconds")
 
     args = parser.parse_args()
