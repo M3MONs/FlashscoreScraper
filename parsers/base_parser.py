@@ -18,5 +18,5 @@ class BaseParser(ABC):
         raise NotImplementedError("Subclasses must implement the parse_event_info method.")
 
     @abstractmethod
-    def parse_odds(self, url: str, data: Any) -> Dict[str, Any]:
+    def parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the parse_odds method.")
