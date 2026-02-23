@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 from typing import Callable, Dict, Any
 from odds.football_odds import FootballOdds
 from parsers.base_parser import BaseParser
@@ -23,7 +24,12 @@ class FootballParser(BaseParser):
 
     def parse_event(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event from URL: {url}")
-        return {"event": "football_event_data"}
+
+        soup = BeautifulSoup(data, 'html.parser')
+
+        date = self._parse_event_date(soup)
+
+        return {"date": date}
 
     def parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -41,3 +47,12 @@ class FootballParser(BaseParser):
     def _parse_1x2_odds(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug("Parsing 1x2 odds")
         return {"odds_type": "1x2", "data": "parsed_1x2_data"}
+    
+    def _parse_event_date(self, soup: BeautifulSoup) -> str | None:
+        date_element = soup.find('div', class_='duelParticipant__startTime')
+        if date_element:
+            date = date_element.get_text(strip=True)
+            return date
+        else:
+            self.logger.warning("Date element not found")
+            return "Unknown date"
