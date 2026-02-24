@@ -57,6 +57,7 @@ class ScraperService:
             page_content = self.engine.get_page(url)
             return parse_func(url, page_content)
         except Exception as e:
+            self.logger.error(f"Failed to fetch and parse data from {url}: {e}", exc_info=True)
             return {"error": str(e), "url": url}
 
     def _get_odds_urls_safely(self, event_url: str) -> Dict[str, str]:
