@@ -29,8 +29,9 @@ class FootballParser(BaseParser):
 
         date = self._parse_event_date(soup)
         teams = self._parse_event_teams(soup)
+        score = self._parse_event_score(soup)
 
-        return {"date": date, "teams": teams}
+        return {"date": date, "teams": teams, "score": score}
 
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -85,3 +86,12 @@ class FootballParser(BaseParser):
             "img": img_tag.get('src') if img_tag else None,
             "link": link_el.get('href'),
         }
+    
+    def _parse_event_score(self, soup: BeautifulSoup) -> str | None:
+        score_element = soup.find('div', class_='detailScore__wrapper')
+        if score_element:
+            score = score_element.get_text(strip=True)
+            return score
+        else:
+            self.logger.warning("Score element not found")
+            return "Unknown score"
