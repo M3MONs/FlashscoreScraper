@@ -30,8 +30,9 @@ class FootballParser(BaseParser):
         date = self._parse_event_date(soup)
         teams = self._parse_event_teams(soup)
         score = self._parse_event_score(soup)
+        detail_status = self._parse_event_detail_status(soup)
 
-        return {"date": date, "teams": teams, "score": score}
+        return {"date": date, "teams": teams, "score": score, "detail_status": detail_status}
 
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -95,3 +96,12 @@ class FootballParser(BaseParser):
         else:
             self.logger.warning("Score element not found")
             return "Unknown score"
+        
+    def _parse_event_detail_status(self, soup: BeautifulSoup) -> str | None:
+        status_element = soup.find('span', class_='fixedHeaderDuel__detailStatus')
+        if status_element:
+            status = status_element.get_text(strip=True)
+            return status
+        else:
+            self.logger.warning("Detail status element not found")
+            return "Unknown status"
