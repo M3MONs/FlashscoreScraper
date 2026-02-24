@@ -1,7 +1,11 @@
 import argparse
+import logging
 from scraper.scraper_factory import ScraperFactory
 from utils.detect_sport import detect_sport_from_url
 from utils.json_formatter import JsonFormatter
+
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", handlers=[logging.StreamHandler()])
 
 
 def scrape_cmd(event_url: str, sport: str | None, engine: str, timeout: int, fetch_func) -> None:
