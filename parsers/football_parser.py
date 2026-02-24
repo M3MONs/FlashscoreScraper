@@ -28,8 +28,9 @@ class FootballParser(BaseParser):
         soup = BeautifulSoup(data, 'html.parser')
 
         date = self._parse_event_date(soup)
+        teams = self._parse_event_teams(soup)
 
-        return {"date": date}
+        return {"date": date, "teams": teams}
 
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -48,6 +49,8 @@ class FootballParser(BaseParser):
         self.logger.debug("Parsing 1x2 odds")
         return {"odds_type": "1x2", "data": "parsed_1x2_data"}
     
+    # --- Event Parsing ---
+
     def _parse_event_date(self, soup: BeautifulSoup) -> str | None:
         date_element = soup.find('div', class_='duelParticipant__startTime')
         if date_element:
@@ -56,3 +59,29 @@ class FootballParser(BaseParser):
         else:
             self.logger.warning("Date element not found")
             return "Unknown date"
+
+    def _parse_event_teams(self, soup: BeautifulSoup) -> Dict[str, Dict[str, str | None]]:
+        team_elements = soup.find_all('div', class_='participant__participantName')
+        team_img_elements = soup.find_all('a', class_='participant__participantLink--team')
+
+        if len(team_elements) != 2:
+            raise ValueError(f"Expected 2 team elements, found {len(team_elements)}")
+        if len(team_img_elements) != 2:
+            raise ValueError(f"Expected 2 team image elements, found {len(team_img_elements)}")
+
+        return {
+            role: self._build_team_info(name_el, link_el)
+            for role, name_el, link_el in zip(
+                ('home', 'away'),
+                team_elements,
+                team_img_elements,
+            )
+        }
+    
+    def _build_team_info(self, name_el, link_el) -> Dict[str, str | None]:
+        img_tag = link_el.find('img')
+        return {
+            "name": name_el.get_text(strip=True),
+            "img": img_tag.get('src') if img_tag else None,
+            "link": link_el.get('href'),
+        }
