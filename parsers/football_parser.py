@@ -54,13 +54,7 @@ class FootballParser(BaseParser):
     # --- Event Parsing ---
 
     def _parse_event_date(self, soup: BeautifulSoup) -> str | None:
-        date_element = soup.find('div', class_='duelParticipant__startTime')
-        if date_element:
-            date = date_element.get_text(strip=True)
-            return date
-        else:
-            self.logger.warning("Date element not found")
-            return "Unknown date"
+        return self._parse_text_element(soup, 'duelParticipant__startTime', "div", "Unknown date")
 
     def _parse_event_teams(self, soup: BeautifulSoup) -> Dict[str, Dict[str, str | None]]:
         team_elements = soup.find_all('div', class_='participant__participantName')
@@ -89,19 +83,7 @@ class FootballParser(BaseParser):
         }
     
     def _parse_event_score(self, soup: BeautifulSoup) -> str | None:
-        score_element = soup.find('div', class_='detailScore__wrapper')
-        if score_element:
-            score = score_element.get_text(strip=True)
-            return score
-        else:
-            self.logger.warning("Score element not found")
-            return "Unknown score"
+        return self._parse_text_element(soup, 'detailScore__wrapper', "div", "Unknown score")
         
     def _parse_event_detail_status(self, soup: BeautifulSoup) -> str | None:
-        status_element = soup.find('span', class_='fixedHeaderDuel__detailStatus')
-        if status_element:
-            status = status_element.get_text(strip=True)
-            return status
-        else:
-            self.logger.warning("Detail status element not found")
-            return "Unknown status"
+        return self._parse_text_element(soup, 'fixedHeaderDuel__detailStatus', "span", "Unknown status")

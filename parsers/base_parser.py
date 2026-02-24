@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 import logging
 
+from bs4 import BeautifulSoup
+
 
 class BaseParser(ABC):
     sport_type: str
@@ -38,3 +40,11 @@ class BaseParser(ABC):
     @abstractmethod
     def _parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the _parse_odds method.")
+    
+    def _parse_text_element(self, soup: BeautifulSoup, class_name: str, html_tag: str = "div", default_value: str = "Unknown") -> str:
+        element = soup.find(html_tag, class_=class_name)
+        if element:
+            return element.get_text(strip=True)
+        else:
+            self.logger.warning(f"Element with class '{class_name}' not found")
+            return default_value
