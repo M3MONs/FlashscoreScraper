@@ -10,7 +10,7 @@ class CurlEngine(BaseEngine):
     def __init__(self, timeout: int = 10) -> None:
         super().__init__(timeout)
 
-    def get_page(self, url: str) -> str:
+    def _get_page(self, url: str) -> str:
         response = requests.get(url, timeout=self.timeout, impersonate="safari15_3")
 
         if response.status_code != 200:
@@ -21,5 +21,5 @@ class CurlEngine(BaseEngine):
 
         return response.text
 
-    def close(self) -> None:
+    def _close(self) -> None:
         pass

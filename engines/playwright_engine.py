@@ -11,10 +11,10 @@ class PlaywrightEngine(BaseEngine):
         self._browser = self._playwright.chromium.launch(headless=True)
         self._page = self._browser.new_page()
 
-    def get_page(self, url: str) -> str:
+    def _get_page(self, url: str) -> str:
         self._page.goto(url, wait_until="networkidle", timeout=self.timeout * 1000)
         return self._page.content()
 
-    def close(self) -> None:
+    def _close(self) -> None:
         self._browser.close()
         self._playwright.stop()

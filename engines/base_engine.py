@@ -1,21 +1,33 @@
 from abc import ABC, abstractmethod
 import logging
 
+
 class BaseEngine(ABC):
     def __init__(self, timeout: int = 10) -> None:
         self.timeout = timeout
         self.logger = logging.getLogger(self.__class__.__name__)
-        
-    @abstractmethod
+
     def get_page(self, url: str) -> str:
-        raise NotImplementedError("get_page method must be implemented by subclasses")
-    
-    @abstractmethod
+        self.logger.debug(f"Fetching page: {url} with timeout: {self.timeout}")
+        result = self._get_page(url)
+        self.logger.debug(f"Successfully fetched page: {url}")
+        return result
+
+    def _get_page(self, url: str) -> str:
+        """Internal method to fetch page content with error handling"""
+        raise NotImplementedError("_get_page method must be implemented by subclasses")
+
     def close(self) -> None:
-        raise NotImplementedError("close method must be implemented by subclasses")
-    
+        self.logger.info(f"Closing {self.__class__.__name__}")
+        self._close()
+
+    @abstractmethod
+    def _close(self) -> None:
+        """Internal method to close resources with error handling"""
+        raise NotImplementedError("_close method must be implemented by subclasses")
+
     def __enter__(self) -> "BaseEngine":
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
