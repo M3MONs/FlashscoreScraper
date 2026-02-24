@@ -9,14 +9,27 @@ from utils.url_builder import FlashscoreUrlBuilder
 
 
 class ScraperService:
-    def __init__(self, engine: BaseEngine, parser: BaseParser, event_url: str) -> None:
+    def __init__(self, engine: BaseEngine, parser: BaseParser) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.engine = engine
         self.parser = parser
-        self.event_url = event_url
+        self._event_url = None
+
+    @property
+    def event_url(self) -> str | None:
+        return self._event_url
+
+    @event_url.setter
+    def event_url(self, url: str) -> None:
+        if not url:
+            raise ValueError("event_url cannot be empty")
+        self._event_url = url
 
     def fetch_and_parse_odds(self, event_url: str | None = None) -> FetchOddsResponse:
-        url = event_url or self.event_url
+        url = event_url or self._event_url
+
+        if not url:
+            raise ValueError("event_url is required")
 
         odds_urls = self._get_odds_urls_safely(url)
 
@@ -28,18 +41,21 @@ class ScraperService:
         return FetchOddsResponse(event_url=url, odds_types=odds_types)
 
     def fetch_and_parse_event(self, event_url: str | None = None) -> Dict[str, Any]:
-        url = event_url or self.event_url
-        try:
-            page_content = self.engine.get_page(url)
-            return self.parser.parse_event(url, page_content)
-        except Exception as e:
-            return {"error": str(e), "url": url}
+        return self._fetch_and_parse_generic(event_url, self.parser.parse_event)
 
     def fetch_and_parse_event_info(self, event_url: str | None = None) -> Dict[str, Any]:
-        url = event_url or self.event_url
+        return self._fetch_and_parse_generic(event_url, self.parser.parse_event_info)
+
+    def _fetch_and_parse_generic(self, event_url: str | None, parse_func) -> Dict[str, Any]:
+        """Common method for fetching and parsing with error handling"""
+        url = event_url or self._event_url
+
+        if not url:
+            raise ValueError("event_url is required")
+
         try:
             page_content = self.engine.get_page(url)
-            return self.parser.parse_event_info(url, page_content)
+            return parse_func(url, page_content)
         except Exception as e:
             return {"error": str(e), "url": url}
 
