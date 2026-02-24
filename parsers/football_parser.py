@@ -22,7 +22,7 @@ class FootballParser(BaseParser):
     def __init__(self) -> None:
         super().__init__()
 
-    def parse_event(self, url: str, data: Any) -> Dict[str, Any]:
+    def _parse_event(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event from URL: {url}")
 
         soup = BeautifulSoup(data, 'html.parser')
@@ -31,11 +31,11 @@ class FootballParser(BaseParser):
 
         return {"date": date}
 
-    def parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
+    def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
         return {"event_info": "football_event_info_data"}
 
-    def parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
+    def _parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football odds from URL: {url}")
         if odds_type in _odds_parsers:
             return _odds_parsers[odds_type](self, url, data)
