@@ -1,12 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Type
 import logging
 
 from bs4 import BeautifulSoup
 
 
 class BaseParser(ABC):
+    _registry: Dict[str, Type["BaseParser"]] = {}
     sport_type: str
+    
+    def __init_subclass__(cls, sport_type: str | None = None, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        if sport_type:
+            cls.sport_type = sport_type
+            BaseParser._registry[sport_type] = cls
+
+    @classmethod
+    def create(cls, sport_type: str) -> "BaseParser":
+        if sport_type not in cls._registry:
+            raise ValueError(f"Unsupported sport type: {sport_type}")
+        return cls._registry[sport_type]()
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
