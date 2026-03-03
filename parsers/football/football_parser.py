@@ -57,12 +57,12 @@ class FootballParser(BaseParser, sport_type=Sport.FOOTBALL.value):
             )
         }
     
-    def _build_team_info(self, name_el, link_el) -> Dict[str, str | None]:
+    def _build_team_info(self, name_el: Tag, link_el: Tag) -> Dict[str, str | None]:
         img_tag = link_el.find('img')
         return {
             "name": name_el.get_text(strip=True),
-            "img": img_tag.get('src') if img_tag else None,
-            "link": link_el.get('href'),
+            "img": str(img_tag.get('src')) if img_tag else None,
+            "link": str(link_el.get('href')) if link_el.get('href') else None,
         }
     
     def _parse_event_score(self, soup: BeautifulSoup) -> str | None:
