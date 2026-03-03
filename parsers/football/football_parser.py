@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from typing import Dict, Any
 from parsers.base_odds_parser import BaseOddsParser
 from parsers.base_parser import BaseParser
@@ -15,8 +15,9 @@ class FootballParser(BaseParser, sport_type=Sport.FOOTBALL.value):
         teams = self._parse_event_teams(soup)
         score = self._parse_event_score(soup)
         detail_status = self._parse_event_detail_status(soup)
+        league = self._parse_event_league(soup)
 
-        return {"date": date, "teams": teams, "score": score, "detail_status": detail_status}
+        return {"date": date, "teams": teams, "score": score, "detail_status": detail_status, "league": league}
 
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -70,3 +71,32 @@ class FootballParser(BaseParser, sport_type=Sport.FOOTBALL.value):
         
     def _parse_event_detail_status(self, soup: BeautifulSoup) -> str | None:
         return self._parse_text_element(soup, 'fixedHeaderDuel__detailStatus', "span", "Unknown status")
+    
+    def _parse_event_league(self, soup: BeautifulSoup) -> Dict[str, str | None] | None:
+        breadcrumbs = soup.find('div', class_='detail__breadcrumbs')
+        if not breadcrumbs:
+            return None
+
+        items = breadcrumbs.find_all('li')
+        if not items:
+            return None
+
+        last = items[-1]
+        
+        name = self._extract_league_name(last)
+        link = self._extract_league_link(last)
+        
+        return {"name": name, "link": link}
+    
+    def _extract_league_name(self, item: Tag) -> str | None:
+        name_el = (
+            item.find(attrs={'itemprop': 'name'}) or
+            item.find('span') or
+            item.find('a') or
+            item
+        )
+        return name_el.get_text(strip=True) if name_el else None
+    
+    def _extract_league_link(self, item: Tag) -> str | None:
+        a_tag = item.find('a', href=True)
+        return str(a_tag.get('href')) if a_tag else None
