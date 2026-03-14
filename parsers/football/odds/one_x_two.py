@@ -1,9 +1,18 @@
-from typing import Any, Dict
+from dataclasses import dataclass
+from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 from odds.football_odds import FootballOdds
 from parsers.base_odds_parser import BaseOddsParser
 from utils.detect_sport import Sport
+
+@dataclass
+class FootballOneXTwoParserResult:
+    bookmaker: str
+    bookmaker_link: str | None
+    odds_1: str
+    odds_X: str
+    odds_2: str
 
 MIN_ODDS_COUNT = 3
 
@@ -11,35 +20,36 @@ class FootballOneXTwoParser(BaseOddsParser):
     sport_type = Sport.FOOTBALL.value
     odds_type = FootballOdds.ONE_X_TWO.value
 
-    def parse(self, url: str, data: Any) -> Dict[str, Any]:
+    def parse(self, url: str, data: Any) -> list[FootballOneXTwoParserResult]:
         soup = BeautifulSoup(data, "html.parser")
         wrapper = soup.find("div", class_="oddsTab__tableWrapper")
 
         if not wrapper:
-            return self._error_response("Odds table wrapper not found")
+            return []
 
         rows = wrapper.select(".ui-table__row")
         results = [self._parse_row(row) for row in rows]
         results = [r for r in results if r is not None]
 
-        return {"odds_type": "1x2", "data": results, "error": None}
+        return results
     
-    def _parse_row(self, row: Tag) -> dict | None:
-        odds_values = self._extract_odds(row)
-        if len(odds_values) < MIN_ODDS_COUNT:
-            return None
+    def _parse_row(self, row: Tag) -> FootballOneXTwoParserResult | None:
+        try:
+            odds_values = self._extract_odds(row)
+            
+            if len(odds_values) < MIN_ODDS_COUNT:
+                return None
 
-        return {
-            "bookmaker": self._extract_bookmaker_name(row),
-            "bookmaker_link": self._extract_bookmaker_link(row),
-            "1": odds_values[0],
-            "X": odds_values[1],
-            "2": odds_values[2],
-        }
-    
-    @staticmethod
-    def _error_response(message: str) -> Dict[str, Any]:
-        return {"odds_type": "1x2", "data": None, "error": message}
+            return FootballOneXTwoParserResult(
+                bookmaker=self._extract_bookmaker_name(row),
+                bookmaker_link=self._extract_bookmaker_link(row),
+                odds_1=odds_values[0],
+                odds_X=odds_values[1],
+                odds_2=odds_values[2],
+            )
+        except Exception as e:
+            self.logger.error(f"Error parsing row: {e}")
+            return None
     
     @staticmethod
     def _extract_odds(row: Tag) -> list[str]:
