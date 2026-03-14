@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Type
-
+import logging
 
 class BaseOddsParser(ABC):
     """Global base class for all odds parsers across sports."""
@@ -12,6 +12,7 @@ class BaseOddsParser(ABC):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        cls.logger = logging.getLogger(cls.__name__)
 
         if getattr(cls, '__abstractmethods__', None):
             return
@@ -25,7 +26,7 @@ class BaseOddsParser(ABC):
         BaseOddsParser._registry[cls.sport_type][cls.odds_type] = cls
 
     @abstractmethod
-    def parse(self, url: str, data: Any) -> Dict[str, Any]:
+    def parse(self, url: str, data: Any) -> list[Any]:
         pass
 
     @classmethod
