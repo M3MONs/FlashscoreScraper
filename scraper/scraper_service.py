@@ -78,8 +78,12 @@ class ScraperService:
         try:
             page_content = self.engine.get_page(odds_url)
             parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type)
-            return OddsResult(url=odds_url, data=parsed_odds)
+
+            if parsed_odds.error:
+                return OddsResult(url=odds_url, data=None, error=parsed_odds.error)
+            
+            return OddsResult(url=odds_url, data=parsed_odds.data, error=None)
         except Exception as e:
             error_msg = f"Failed to fetch odds from {odds_url}: {e}"
             self.logger.error(error_msg, exc_info=True)
-            return OddsResult(url=odds_url, error=str(e))
+            return OddsResult(url=odds_url, data=None, error=str(e))
