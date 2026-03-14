@@ -4,6 +4,8 @@ import logging
 
 from bs4 import BeautifulSoup
 
+from models import OddsParserResult
+
 
 class BaseParser(ABC):
     _registry: Dict[str, Type["BaseParser"]] = {}
@@ -44,14 +46,14 @@ class BaseParser(ABC):
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the _parse_event_info method.")
 
-    def parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
+    def parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
         self.logger.debug(f"Parsing odds from URL: {url} with odds type: {odds_type}")
         result = self._parse_odds(url, data, odds_type)
         self.logger.debug(f"Finished parsing odds from URL: {url} with odds type: {odds_type}")
         return result
 
     @abstractmethod
-    def _parse_odds(self, url: str, data: Any, odds_type: str) -> Dict[str, Any]:
+    def _parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
         raise NotImplementedError("Subclasses must implement the _parse_odds method.")
     
     def _parse_text_element(self, soup: BeautifulSoup, class_name: str, html_tag: str = "div", default_value: str = "Unknown") -> str:
