@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Type
 import logging
 
-from bs4 import BeautifulSoup
-
+from models.parse_text_element_params import ParseTextElementParams
 from models.odds_parser_result import OddsParserResult
 
 
@@ -56,10 +55,11 @@ class BaseParser(ABC):
     def _parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
         raise NotImplementedError("Subclasses must implement the _parse_odds method.")
 
-    def _parse_text_element(self, soup: BeautifulSoup, class_name: str, html_tag: str = "div", default_value: str = "Unknown") -> str:
-        element = soup.find(html_tag, class_=class_name)
+    @staticmethod
+    def parse_text_element(params: ParseTextElementParams) -> str:
+        element = params.soup.find(params.html_tag, class_=params.class_name)
         if element:
             return element.get_text(strip=True)
         else:
-            self.logger.warning(f"Element with class '{class_name}' not found")
-            return default_value
+            logging.warning(f"Element with class '{params.class_name}' not found")
+            return params.default_value
