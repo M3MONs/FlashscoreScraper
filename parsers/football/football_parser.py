@@ -1,25 +1,18 @@
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from typing import Dict, Any
-from models.parse_text_element_params import ParseTextElementParams
 from parsers.base_odds_parser import BaseOddsParser
 from models.odds_parser_result import OddsParserResult
 from parsers.base_parser import BaseParser
+from parsers.football.football_event_parser import FootballEventParser
 from utils.detect_sport import Sports
 
 
 class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
     def _parse_event(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event from URL: {url}")
-
         soup = BeautifulSoup(data, 'html.parser')
-
-        date = self._parse_event_date(soup)
-        teams = self._parse_event_teams(soup)
-        score = self._parse_event_score(soup)
-        detail_status = self._parse_event_detail_status(soup)
-        league = self._parse_event_league(soup)
-
-        return {"date": date, "teams": teams, "score": score, "detail_status": detail_status, "league": league}
+        event_data = FootballEventParser.parse_event(soup)
+        return event_data.__dict__ if event_data else {}
 
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         self.logger.debug(f"Parsing football event info from URL: {url}")
@@ -37,87 +30,3 @@ class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
             return OddsParserResult(odds_type=odds_type, data=None, error=f"No parser implemented for odds type: '{odds_type}'")
         
         return OddsParserResult(odds_type=odds_type, data=parser.parse(url, data), error=None)
-    
-    # --- Event Parsing ---
-
-    def _parse_event_date(self, soup: BeautifulSoup) -> str | None:
-        event_date_params = ParseTextElementParams(
-            soup=soup,
-            class_name='duelParticipant__startTime',
-            html_tag='div',
-            default_value='Unknown date'
-        )
-        return self.parse_text_element(event_date_params)
-
-    def _parse_event_teams(self, soup: BeautifulSoup) -> Dict[str, Dict[str, str | None]]:
-        team_elements = soup.find_all('div', class_='participant__participantName')
-        team_img_elements = soup.find_all('a', class_='participant__participantLink--team')
-
-        if len(team_elements) != 2:
-            raise ValueError(f"Expected 2 team elements, found {len(team_elements)}")
-        if len(team_img_elements) != 2:
-            raise ValueError(f"Expected 2 team image elements, found {len(team_img_elements)}")
-
-        return {
-            role: self._build_team_info(name_el, link_el)
-            for role, name_el, link_el in zip(
-                ('home', 'away'),
-                team_elements,
-                team_img_elements,
-            )
-        }
-    
-    def _build_team_info(self, name_el: Tag, link_el: Tag) -> Dict[str, str | None]:
-        img_tag = link_el.find('img')
-        return {
-            "name": name_el.get_text(strip=True),
-            "img": str(img_tag.get('src')) if img_tag else None,
-            "link": str(link_el.get('href')) if link_el.get('href') else None,
-        }
-    
-    def _parse_event_score(self, soup: BeautifulSoup) -> str | None:
-        event_score_params = ParseTextElementParams(
-            soup=soup,
-            class_name='detailScore__wrapper',
-            html_tag='div',
-            default_value='Unknown score'
-        )
-        return self.parse_text_element(event_score_params)
-        
-    def _parse_event_detail_status(self, soup: BeautifulSoup) -> str | None:
-        detail_status_params = ParseTextElementParams(
-            soup=soup,
-            class_name='fixedHeaderDuel__detailStatus',
-            html_tag='span',
-            default_value='Unknown status'
-        )
-        return self.parse_text_element(detail_status_params)
-    
-    def _parse_event_league(self, soup: BeautifulSoup) -> Dict[str, str | None] | None:
-        breadcrumbs = soup.find('div', class_='detail__breadcrumbs')
-        if not breadcrumbs:
-            return None
-
-        items = breadcrumbs.find_all('li')
-        if not items:
-            return None
-
-        last = items[-1]
-        
-        name = self._extract_league_name(last)
-        link = self._extract_league_link(last)
-        
-        return {"name": name, "link": link}
-    
-    def _extract_league_name(self, item: Tag) -> str | None:
-        name_el = (
-            item.find(attrs={'itemprop': 'name'}) or
-            item.find('span') or
-            item.find('a') or
-            item
-        )
-        return name_el.get_text(strip=True) if name_el else None
-    
-    def _extract_league_link(self, item: Tag) -> str | None:
-        a_tag = item.find('a', href=True)
-        return str(a_tag.get('href')) if a_tag else None
