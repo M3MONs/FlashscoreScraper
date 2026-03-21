@@ -4,13 +4,13 @@ import logging
 
 from bs4 import BeautifulSoup
 
-from models import OddsParserResult
+from models.odds_parser_result import OddsParserResult
 
 
 class BaseParser(ABC):
     _registry: Dict[str, Type["BaseParser"]] = {}
     sport_type: str
-    
+
     def __init_subclass__(cls, sport_type: str | None = None, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         if sport_type:
@@ -55,7 +55,7 @@ class BaseParser(ABC):
     @abstractmethod
     def _parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
         raise NotImplementedError("Subclasses must implement the _parse_odds method.")
-    
+
     def _parse_text_element(self, soup: BeautifulSoup, class_name: str, html_tag: str = "div", default_value: str = "Unknown") -> str:
         element = soup.find(html_tag, class_=class_name)
         if element:

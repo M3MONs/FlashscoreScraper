@@ -1,7 +1,8 @@
 from typing import Dict, Any
-from models import OddsResult, FetchOddsResponse
+from models.fetch_odds_response import FetchOddsResponse
+from models.odds_result import OddsResult
 from engines.base_engine import BaseEngine
-from odds.odds_factory import get_odds_enum
+from models.odds.odds_factory import get_odds_enum
 from parsers.base_parser import BaseParser
 import logging
 

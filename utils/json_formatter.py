@@ -1,7 +1,7 @@
 import json
 from dataclasses import asdict, is_dataclass
 from typing import Dict, Any
-from models import FetchOddsResponse
+from models.fetch_odds_response import FetchOddsResponse
 
 
 class JsonFormatter:

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Any
 from bs4 import BeautifulSoup, Tag
-from odds.football_odds import FootballOdds
+from models.odds.football_odds import FootballOdds
 from parsers.base_odds_parser import BaseOddsParser
-from utils.detect_sport import Sport
+from utils.detect_sport import Sports
 
 
 @dataclass
@@ -19,7 +19,7 @@ MIN_ODDS_COUNT = 2
 
 
 class FootballOverUnderParser(BaseOddsParser):
-    sport_type = Sport.FOOTBALL.value
+    sport_type = Sports.FOOTBALL.value
     odds_type = FootballOdds.OVER_UNDER.value
 
     def parse(self, url: str, data: Any) -> list[OverUnderParserResult]:

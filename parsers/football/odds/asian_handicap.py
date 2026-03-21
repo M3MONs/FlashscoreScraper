@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Any
 from parsers.base_odds_parser import BaseOddsParser
 from bs4 import BeautifulSoup, Tag
-from utils.detect_sport import Sport
-from odds.football_odds import FootballOdds
+from utils.detect_sport import Sports
+from models.odds.football_odds import FootballOdds
 
 
 @dataclass
@@ -19,7 +19,7 @@ MIN_ODDS_COUNT = 2
 
 
 class AsianHandicapParser(BaseOddsParser):
-    sport_type = Sport.FOOTBALL.value
+    sport_type = Sports.FOOTBALL.value
     odds_type = FootballOdds.ASIAN_HANDICAP.value
 
     def parse(self, url: str, data: str) -> list[FootballAsianHandicapParserResult]:
