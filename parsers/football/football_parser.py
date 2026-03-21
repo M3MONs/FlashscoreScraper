@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup, Tag
 from typing import Dict, Any
+from models.parse_text_element_params import ParseTextElementParams
 from parsers.base_odds_parser import BaseOddsParser
 from models.odds_parser_result import OddsParserResult
 from parsers.base_parser import BaseParser
@@ -40,7 +41,13 @@ class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
     # --- Event Parsing ---
 
     def _parse_event_date(self, soup: BeautifulSoup) -> str | None:
-        return self._parse_text_element(soup, 'duelParticipant__startTime', "div", "Unknown date")
+        event_date_params = ParseTextElementParams(
+            soup=soup,
+            class_name='duelParticipant__startTime',
+            html_tag='div',
+            default_value='Unknown date'
+        )
+        return self.parse_text_element(event_date_params)
 
     def _parse_event_teams(self, soup: BeautifulSoup) -> Dict[str, Dict[str, str | None]]:
         team_elements = soup.find_all('div', class_='participant__participantName')
@@ -69,10 +76,22 @@ class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
         }
     
     def _parse_event_score(self, soup: BeautifulSoup) -> str | None:
-        return self._parse_text_element(soup, 'detailScore__wrapper', "div", "Unknown score")
+        event_score_params = ParseTextElementParams(
+            soup=soup,
+            class_name='detailScore__wrapper',
+            html_tag='div',
+            default_value='Unknown score'
+        )
+        return self.parse_text_element(event_score_params)
         
     def _parse_event_detail_status(self, soup: BeautifulSoup) -> str | None:
-        return self._parse_text_element(soup, 'fixedHeaderDuel__detailStatus', "span", "Unknown status")
+        detail_status_params = ParseTextElementParams(
+            soup=soup,
+            class_name='fixedHeaderDuel__detailStatus',
+            html_tag='span',
+            default_value='Unknown status'
+        )
+        return self.parse_text_element(detail_status_params)
     
     def _parse_event_league(self, soup: BeautifulSoup) -> Dict[str, str | None] | None:
         breadcrumbs = soup.find('div', class_='detail__breadcrumbs')
