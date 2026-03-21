@@ -3,11 +3,9 @@ import pkgutil
 import logging
 from pathlib import Path
 from typing import Callable, Dict, Type, TypeVar
-from enum import Enum
 
-class BaseOdds(Enum):
-    """Base class for all odds enums."""
-    pass
+from models.base_odds import BaseOdds
+
 
 TBaseOdds = TypeVar("TBaseOdds", bound=BaseOdds)
 
@@ -16,9 +14,11 @@ _odds_registry: Dict[str, Type[BaseOdds]] = {}
 
 def register_odds(sport_type: str) -> Callable[[Type[TBaseOdds]], Type[TBaseOdds]]:
     """Decorator to register an odds enum class for a specific sport type."""
+
     def decorator(enum_cls: Type[TBaseOdds]) -> Type[TBaseOdds]:
         _odds_registry[sport_type] = enum_cls
         return enum_cls
+
     return decorator
 
 
@@ -28,7 +28,7 @@ def get_odds_enum(sport_type: str) -> Type[BaseOdds]:
         return _odds_registry[sport_type]
     else:
         raise ValueError(f"Unsupported sport type: {sport_type}")
-    
+
 
 def _load_odds() -> None:
     """Dynamically load all odds enum modules in the current package."""
@@ -47,5 +47,5 @@ def _load_odds() -> None:
         except Exception as e:
             logging.exception(f"Unexpected error during engine module loading '{module_name}': {e}")
 
+
 _load_odds()
-        
