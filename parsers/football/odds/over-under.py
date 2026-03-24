@@ -20,7 +20,7 @@ class FootballOverUnderParser(BaseOddsParser):
     ODDS_COUNT = 2
 
     def _parse_row(self, row: Tag, bookmaker: BookmakerInfo) -> OverUnderParserResult | None:
-        total = self._extract_total(row)
+        total = self._extract_value(row)
         odds_values = self._extract_odds(row)
 
         if len(odds_values) is not self.ODDS_COUNT:
@@ -34,11 +34,3 @@ class FootballOverUnderParser(BaseOddsParser):
             odds_under=odds_values[1],
         )
 
-    @staticmethod
-    def _extract_total(row: Tag) -> str:
-        total_span = row.find("span", {"data-testid": "wcl-oddsValue"})
-        return total_span.get_text(strip=True) if total_span else ""
-
-    @staticmethod
-    def _extract_odds(row: Tag) -> list[str]:
-        return [span.get_text(strip=True) for span in row.select("a.oddsCell__odd span")]
