@@ -85,3 +85,10 @@ class BaseOddsParser(ABC):
         if odds_cell and "data-analytics-bookmaker-id" in odds_cell.attrs:
             return str(odds_cell["data-analytics-bookmaker-id"])
         return "Unknown"
+    
+    def _extract_odds(self, row: Tag) -> list[str]:
+        return [span.get_text(strip=True) for span in row.select("a.oddsCell__odd span")]
+    
+    def _extract_value(self, row: Tag) -> str:
+        value_span = row.find("span", {"data-testid": "wcl-oddsValue"})
+        return value_span.get_text(strip=True) if value_span else ""
