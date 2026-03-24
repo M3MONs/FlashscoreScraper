@@ -23,9 +23,9 @@ def scrape_cmd(event_url: str, sport: str | None, engine: str, timeout: int, fet
         scraper.engine.close()
 
 
-def scrape_odds_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10) -> None:
+def scrape_odds_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10, odds: list[str] | None = None) -> None:
     """CLI interface for scraping odds"""
-    scrape_cmd(event_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_odds())
+    scrape_cmd(event_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_odds(odds=odds))
 
 
 def scrape_event_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10) -> None:
@@ -51,6 +51,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     odds_parser = subparsers.add_parser("odds", help="Scrap odds")
+    odds_parser.add_argument("--odds", nargs="*", default=[], help="Specific odds types to scrape (e.g. '1x2-odds', 'over-under'). If not provided, all available odds types will be scraped")
     add_common_arguments(odds_parser)
 
     event_parser = subparsers.add_parser("event", help="Scrap event information")
@@ -62,7 +63,7 @@ def main() -> None:
     args = parser.parse_args()
 
     command_dispatch = {
-        "odds": lambda: scrape_odds_cmd(args.url, args.sport, args.engine, args.timeout),
+        "odds": lambda: scrape_odds_cmd(args.url, args.sport, args.engine, args.timeout, args.odds),
         "event": lambda: scrape_event_cmd(args.url, args.sport, args.engine, args.timeout),
         "event-info": lambda: scrape_event_info_cmd(args.url, args.sport, args.engine, args.timeout),
     }
