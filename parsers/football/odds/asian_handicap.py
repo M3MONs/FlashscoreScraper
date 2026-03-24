@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Any
-from parsers.base_odds_parser import BaseOddsParser
-from bs4 import BeautifulSoup, Tag
+from parsers.base_odds_parser import BaseOddsParser, BookmakerInfo
+from bs4 import Tag
 from utils.detect_sport import Sports
 from models.odds.football_odds import FootballOdds
 
@@ -15,43 +14,24 @@ class FootballAsianHandicapParserResult:
     odds_2: str
 
 
-MIN_ODDS_COUNT = 2
-
-
 class AsianHandicapParser(BaseOddsParser):
     sport_type = Sports.FOOTBALL.value
     odds_type = FootballOdds.ASIAN_HANDICAP.value
+    ODDS_COUNT = 2
 
-    def parse(self, url: str, data: str) -> list[FootballAsianHandicapParserResult]:
-        soup = BeautifulSoup(data, "html.parser")
-        wrapper = soup.find("div", class_="oddsTab__tableWrapper")
+    def _parse_row(self, row: Tag, bookmaker: BookmakerInfo) -> FootballAsianHandicapParserResult | None:
+        odds_values = self._extract_odds(row)
 
-        if not wrapper:
-            return []
-
-        rows = wrapper.select(".ui-table__row")
-        results = [self._parse_row(row) for row in rows]
-        results = [r for r in results if r is not None]
-
-        return results
-
-    def _parse_row(self, row: Tag) -> Any | None:
-        try:
-            odds_values = self._extract_odds(row)
-
-            if len(odds_values) < MIN_ODDS_COUNT:
-                return None
-
-            return FootballAsianHandicapParserResult(
-                bookmaker=self._extract_bookmaker_name(row),
-                bookmaker_link=self._extract_bookmaker_link(row),
-                handicap=self._extract_handicap(row),
-                odds_1=odds_values[0],
-                odds_2=odds_values[1],
-            )
-        except Exception as e:
-            self.logger.error(f"Error parsing row: {e}")
+        if len(odds_values) is not self.ODDS_COUNT:
             return None
+
+        return FootballAsianHandicapParserResult(
+            bookmaker=bookmaker.name,
+            bookmaker_link=bookmaker.link,
+            handicap=self._extract_handicap(row),
+            odds_1=odds_values[0],
+            odds_2=odds_values[1],
+        )
 
     @staticmethod
     def _extract_handicap(row: Tag) -> str:
