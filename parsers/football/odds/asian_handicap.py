@@ -28,16 +28,7 @@ class AsianHandicapParser(BaseOddsParser):
         return FootballAsianHandicapParserResult(
             bookmaker=bookmaker.name,
             bookmaker_link=bookmaker.link,
-            handicap=self._extract_handicap(row),
+            handicap=self._extract_value(row),
             odds_1=odds_values[0],
             odds_2=odds_values[1],
         )
-
-    @staticmethod
-    def _extract_handicap(row: Tag) -> str:
-        handicap_span = row.find("span", {"data-testid": "wcl-oddsValue"})
-        return handicap_span.get_text(strip=True) if handicap_span else ""
-
-    @staticmethod
-    def _extract_odds(row: Tag) -> list[str]:
-        return [span.get_text(strip=True) for span in row.select("a.oddsCell__odd span")]
