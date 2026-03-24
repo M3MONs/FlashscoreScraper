@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Any
-from bs4 import BeautifulSoup, Tag
+from bs4 import Tag
 from models.odds.football_odds import FootballOdds
-from parsers.base_odds_parser import BaseOddsParser
+from parsers.base_odds_parser import BaseOddsParser, BookmakerInfo
 from utils.detect_sport import Sports
 
 
@@ -15,44 +14,25 @@ class OverUnderParserResult:
     odds_under: str
 
 
-MIN_ODDS_COUNT = 2
-
-
 class FootballOverUnderParser(BaseOddsParser):
     sport_type = Sports.FOOTBALL.value
     odds_type = FootballOdds.OVER_UNDER.value
+    ODDS_COUNT = 2
 
-    def parse(self, url: str, data: Any) -> list[OverUnderParserResult]:
-        soup = BeautifulSoup(data, "html.parser")
-        wrapper = soup.find("div", class_="oddsTab__tableWrapper")
+    def _parse_row(self, row: Tag, bookmaker: BookmakerInfo) -> OverUnderParserResult | None:
+        total = self._extract_total(row)
+        odds_values = self._extract_odds(row)
 
-        if not wrapper:
-            return []
-
-        rows = wrapper.select(".ui-table__row")
-        results = [self._parse_row(row) for row in rows]
-        results = [r for r in results if r is not None]
-
-        return results
-
-    def _parse_row(self, row: Tag) -> OverUnderParserResult | None:
-        try:
-            total = self._extract_total(row)
-            odds_values = self._extract_odds(row)
-
-            if len(odds_values) < MIN_ODDS_COUNT:
-                return None
-
-            return OverUnderParserResult(
-                bookmaker=self._extract_bookmaker_name(row),
-                bookmaker_link=self._extract_bookmaker_link(row),
-                total=total,
-                odds_over=odds_values[0],
-                odds_under=odds_values[1],
-            )
-        except Exception as e:
-            self.logger.error(f"Error parsing row: {e}")
+        if len(odds_values) is not self.ODDS_COUNT:
             return None
+
+        return OverUnderParserResult(
+            bookmaker=bookmaker.name,
+            bookmaker_link=bookmaker.link,
+            total=total,
+            odds_over=odds_values[0],
+            odds_under=odds_values[1],
+        )
 
     @staticmethod
     def _extract_total(row: Tag) -> str:
