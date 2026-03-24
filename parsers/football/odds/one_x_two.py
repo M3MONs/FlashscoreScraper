@@ -32,7 +32,3 @@ class FootballOneXTwoParser(BaseOddsParser):
             odds_X=odds_values[1],
             odds_2=odds_values[2],
         )
-
-    @staticmethod
-    def _extract_odds(row: Tag) -> list[str]:
-        return [span.get_text(strip=True) for span in row.select("a.oddsCell__odd span")]
