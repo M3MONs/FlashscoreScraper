@@ -26,13 +26,14 @@ class ScraperService:
             raise ValueError("event_url cannot be empty")
         self._event_url = url
 
-    def fetch_and_parse_odds(self, event_url: str | None = None) -> FetchOddsResponse:
+    def fetch_and_parse_odds(self, event_url: str | None = None, odds: list[str] | None = None) -> FetchOddsResponse:
         url = event_url or self._event_url
+        odds = odds or []
 
         if not url:
             raise ValueError("event_url is required")
 
-        odds_urls = self._get_odds_urls_safely(url)
+        odds_urls = self._get_odds_urls_safely(url, odds)
 
         if not odds_urls:
             self.logger.warning(f"No odds URLs found for event: {url}")
@@ -61,11 +62,13 @@ class ScraperService:
             self.logger.error(f"Failed to fetch and parse data from {url}: {e}", exc_info=True)
             return {"error": str(e), "url": url}
 
-    def _get_odds_urls_safely(self, event_url: str) -> Dict[str, str]:
+    def _get_odds_urls_safely(self, event_url: str, odds: list[str]) -> Dict[str, str]:
         """Securely get odds URLs, handling any exceptions that may occur."""
         try:
-            odds_types = get_odds_enum(self.parser.sport_type)
-            return {odd_type.value: FlashscoreUrlBuilder.build_odds_url(event_url, odd_type.value.lower()) for odd_type in odds_types}
+            all_odds = list(get_odds_enum(self.parser.sport_type))
+            filtered_odds = [o for o in all_odds if o.value in set(odds)] if odds else all_odds
+
+            return {odd_type.value: FlashscoreUrlBuilder.build_odds_url(event_url, odd_type.value.lower()) for odd_type in filtered_odds}
         except Exception as e:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
             return {}
