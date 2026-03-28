@@ -38,9 +38,8 @@ class ScraperService:
         if not odds_urls:
             self.logger.warning(f"No odds URLs found for event: {url}")
 
-        odds_types = self._fetch_odds_types(odds_urls)
-
-        return FetchOddsResponse(event_url=url, odds_types=odds_types)
+        fetched_odds = self._fetch_odds(odds_urls)
+        return FetchOddsResponse(event_url=url, odds=fetched_odds)
 
     def fetch_and_parse_event(self, event_url: str | None = None) -> Dict[str, Any]:
         return self._fetch_and_parse_generic(event_url, self.parser.parse_event)
@@ -73,9 +72,9 @@ class ScraperService:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
             return {}
 
-    def _fetch_odds_types(self, odds_urls: Dict[str, str]) -> Dict[str, OddsResult]:
+    def _fetch_odds(self, odds_urls: Dict[str, str]) -> list[OddsResult]:
         """Fetch odds for each odds type, handling exceptions for each individual fetch."""
-        return {odds_type: self._fetch_single_odds(odds_url, odds_type) for odds_type, odds_url in odds_urls.items()}
+        return [self._fetch_single_odds(odds_url, odds_type) for odds_type, odds_url in odds_urls.items()]
 
     def _fetch_single_odds(self, odds_url: str, odds_type: str) -> OddsResult:
         """Fetch odds from a single URL, handling any exceptions that may occur."""
@@ -84,10 +83,10 @@ class ScraperService:
             parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type)
 
             if parsed_odds.error:
-                return OddsResult(url=odds_url, data=None, error=parsed_odds.error)
-            
-            return OddsResult(url=odds_url, data=parsed_odds.data, error=None)
+                return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=parsed_odds.error)
+
+            return OddsResult(url=odds_url, odd_type=odds_type, data=parsed_odds.data, error=None)
         except Exception as e:
             error_msg = f"Failed to fetch odds from {odds_url}: {e}"
             self.logger.error(error_msg, exc_info=True)
-            return OddsResult(url=odds_url, data=None, error=str(e))
+            return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=str(e))
