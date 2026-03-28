@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Any, Dict
-from .odds_parser_result import OddsParserResult
+from models.odds_parser_row import OddsParserRow
 
 
 @dataclass
 class OddsResult:
     url: str
-    data: Dict[str, Any] | OddsParserResult | None = None
+    odd_type: str
+    data: list[OddsParserRow] | None
     error: str | None = None
 
     def is_successful(self) -> bool:
