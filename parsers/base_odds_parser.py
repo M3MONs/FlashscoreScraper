@@ -4,6 +4,8 @@ from typing import Any, Dict, Type
 from bs4 import BeautifulSoup, Tag
 import logging
 
+from models.odds_parser_row import OddsParserRow, OddsParserRowData
+
 
 @dataclass
 class BookmakerInfo:
@@ -20,7 +22,7 @@ class BaseOddsParser(ABC):
     sport_type: str
     odds_type: str
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         cls.logger = logging.getLogger(cls.__name__)
 
@@ -33,7 +35,7 @@ class BaseOddsParser(ABC):
         BaseOddsParser._registry.setdefault(cls.sport_type, {})
         BaseOddsParser._registry[cls.sport_type][cls.odds_type] = cls
 
-    def parse(self, url: str, data: Any) -> list[Any]:
+    def parse(self, url: str, data: Any) -> list[OddsParserRow]:
         soup = BeautifulSoup(data, "html.parser")
         wrapper = soup.find("div", class_="oddsTab__tableWrapper")
 
@@ -59,7 +61,7 @@ class BaseOddsParser(ABC):
         return results
 
     @abstractmethod
-    def _parse_row(self, row: Tag, bookmaker: BookmakerInfo) -> Any | None:
+    def _parse_row(self, row: Tag, bookmaker: BookmakerInfo) -> OddsParserRow | None:
         pass
 
     @classmethod
@@ -71,6 +73,14 @@ class BaseOddsParser(ABC):
 
         parser_class = sport_registry.get(odds_type)
         return parser_class() if parser_class else None
+
+    def _generate_result(self, bookmaker: BookmakerInfo, odds_values: list[OddsParserRowData]) -> OddsParserRow:
+        return OddsParserRow(
+            bookmaker_id=bookmaker.id,
+            bookmaker_name=bookmaker.name,
+            bookmaker_link=bookmaker.link,
+            odds_values=odds_values,
+        )
 
     def _extract_bookmaker_link(self, row: Tag) -> str | None:
         link_tag = row.select_one(".oddsCell__bookmakerPart a")
