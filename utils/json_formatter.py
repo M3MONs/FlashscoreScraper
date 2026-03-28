@@ -1,8 +1,6 @@
 import json
 from dataclasses import asdict, is_dataclass
-from typing import Dict, Any
-from models.fetch_odds_response import FetchOddsResponse
-
+from typing import Dict, Any  
 
 class JsonFormatter:
     @staticmethod
@@ -17,20 +15,6 @@ class JsonFormatter:
             return obj
 
     @staticmethod
-    def to_json(data: Dict[str, Any] | FetchOddsResponse) -> str:
-        if isinstance(data, FetchOddsResponse):
-            data_dict = {
-                "event_url": data.event_url,
-                "odds_types": {
-                    odds_type: {
-                        "url": result.url,
-                        "data": JsonFormatter._convert_to_serializable(result.data),
-                        "error": result.error,
-                    }
-                    for odds_type, result in data.odds_types.items()
-                },
-            }
-        else:
-            data_dict = JsonFormatter._convert_to_serializable(data)
-
+    def to_json(data: Dict[str, Any] | Any) -> str:
+        data_dict = JsonFormatter._convert_to_serializable(data)
         return json.dumps(data_dict, indent=2, ensure_ascii=False)
