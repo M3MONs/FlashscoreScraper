@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import Dict
-from .odds_result import OddsResult
+from models.odds_result import OddsResult
+
 
 @dataclass
 class FetchOddsResponse:
     event_url: str
-    odds_types: Dict[str, OddsResult]
+    # TODO: ADD event_id
+    odds: list[OddsResult]
 
     def has_errors(self) -> bool:
-        return any(result.error for result in self.odds_types.values())
+        return any(getattr(result, "error", None) for result in self.odds)
