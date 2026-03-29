@@ -4,6 +4,7 @@ from typing import Any, Dict, Type
 from bs4 import BeautifulSoup, Tag
 import logging
 
+from models.odds_filter import OddsFilter
 from models.odds_parser_row import OddsParserRow, OddsParserRowData
 
 
@@ -35,7 +36,7 @@ class BaseOddsParser(ABC):
         BaseOddsParser._registry.setdefault(cls.sport_type, {})
         BaseOddsParser._registry[cls.sport_type][cls.odds_type] = cls
 
-    def parse(self, url: str, data: Any) -> list[OddsParserRow]:
+    def parse(self, url: str, data: Any, odds_filter: OddsFilter | None = None) -> list[OddsParserRow]:
         soup = BeautifulSoup(data, "html.parser")
         wrapper = soup.find("div", class_="oddsTab__tableWrapper")
 
@@ -43,6 +44,7 @@ class BaseOddsParser(ABC):
             return []
 
         rows = wrapper.select(".ui-table__row")
+        bookmaker_filter = set(odds_filter.bookmakers) if odds_filter and odds_filter.bookmakers else None
         results = []
 
         for row in rows:
@@ -52,6 +54,8 @@ class BaseOddsParser(ABC):
                     name=self._extract_bookmaker_name(row),
                     link=self._extract_bookmaker_link(row),
                 )
+                if bookmaker_filter is not None and bookmaker.id not in bookmaker_filter:
+                    continue
                 result = self._parse_row(row, bookmaker)
                 if result is not None:
                     results.append(result)
