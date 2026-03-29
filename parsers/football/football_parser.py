@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from typing import Dict, Any
+from models.odds_filter import OddsFilter
 from parsers.base_odds_parser import BaseOddsParser
 from models.odds_parser_result import OddsParserResult
 from parsers.base_parser import BaseParser
@@ -18,7 +19,7 @@ class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
         self.logger.debug(f"Parsing football event info from URL: {url}")
         return {"event_info": "football_event_info_data"}
 
-    def _parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
+    def _parse_odds(self, url: str, data: Any, odds_type: str, odds_filter: OddsFilter | None = None) -> OddsParserResult:
         self.logger.debug(f"Parsing football odds from URL: {url}")
         parser = BaseOddsParser.create(
             Sports.FOOTBALL.value,
@@ -29,4 +30,4 @@ class FootballParser(BaseParser, sport_type=Sports.FOOTBALL.value):
             self.logger.warning(f"No parser implemented for odds type: '{odds_type}'")
             return OddsParserResult(odds_type=odds_type, data=None, error=f"No parser implemented for odds type: '{odds_type}'")
         
-        return OddsParserResult(odds_type=odds_type, data=parser.parse(url, data), error=None)
+        return OddsParserResult(odds_type=odds_type, data=parser.parse(url, data, odds_filter), error=None)
