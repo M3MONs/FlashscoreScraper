@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from models.fetch_odds_response import FetchOddsResponse
+from models.odds_filter import OddsFilter
 from models.odds_result import OddsResult
 from engines.base_engine import BaseEngine
 from models.odds.odds_factory import get_odds_enum
@@ -26,19 +27,19 @@ class ScraperService:
             raise ValueError("event_url cannot be empty")
         self._event_url = url
 
-    def fetch_and_parse_odds(self, event_url: str | None = None, odds: list[str] | None = None) -> FetchOddsResponse:
+    def fetch_and_parse_odds(self, event_url: str | None = None, odds_filter: OddsFilter | None = None) -> FetchOddsResponse:
         url = event_url or self._event_url
-        odds = odds or []
+        odds_filter = odds_filter or OddsFilter()
 
         if not url:
             raise ValueError("event_url is required")
 
-        odds_urls = self._get_odds_urls_safely(url, odds)
+        odds_urls = self._get_odds_urls_safely(url, odds_filter.odds)
 
         if not odds_urls:
             self.logger.warning(f"No odds URLs found for event: {url}")
 
-        fetched_odds = self._fetch_odds(odds_urls)
+        fetched_odds = self._fetch_odds(odds_urls, odds_filter)
         return FetchOddsResponse(event_url=url, odds=fetched_odds)
 
     def fetch_and_parse_event(self, event_url: str | None = None) -> Dict[str, Any]:
@@ -72,15 +73,15 @@ class ScraperService:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
             return {}
 
-    def _fetch_odds(self, odds_urls: Dict[str, str]) -> list[OddsResult]:
+    def _fetch_odds(self, odds_urls: Dict[str, str], odds_filter: OddsFilter) -> list[OddsResult]:
         """Fetch odds for each odds type, handling exceptions for each individual fetch."""
-        return [self._fetch_single_odds(odds_url, odds_type) for odds_type, odds_url in odds_urls.items()]
+        return [self._fetch_single_odds(odds_url, odds_type, odds_filter) for odds_type, odds_url in odds_urls.items()]
 
-    def _fetch_single_odds(self, odds_url: str, odds_type: str) -> OddsResult:
+    def _fetch_single_odds(self, odds_url: str, odds_type: str, odds_filter: OddsFilter) -> OddsResult:
         """Fetch odds from a single URL, handling any exceptions that may occur."""
         try:
             page_content = self.engine.get_page(odds_url)
-            parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type)
+            parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type, odds_filter)
 
             if parsed_odds.error:
                 return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=parsed_odds.error)
