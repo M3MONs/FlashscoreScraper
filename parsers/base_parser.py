@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Type
 import logging
 
+from models.odds_filter import OddsFilter
 from models.parse_text_element_params import ParseTextElementParams
 from models.odds_parser_result import OddsParserResult
 
@@ -45,14 +46,14 @@ class BaseParser(ABC):
     def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the _parse_event_info method.")
 
-    def parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
+    def parse_odds(self, url: str, data: Any, odds_type: str, odds_filter: OddsFilter | None = None) -> OddsParserResult:
         self.logger.debug(f"Parsing odds from URL: {url} with odds type: {odds_type}")
-        result = self._parse_odds(url, data, odds_type)
+        result = self._parse_odds(url, data, odds_type, odds_filter)
         self.logger.debug(f"Finished parsing odds from URL: {url} with odds type: {odds_type}")
         return result
 
     @abstractmethod
-    def _parse_odds(self, url: str, data: Any, odds_type: str) -> OddsParserResult:
+    def _parse_odds(self, url: str, data: Any, odds_type: str, odds_filter: OddsFilter | None = None) -> OddsParserResult:
         raise NotImplementedError("Subclasses must implement the _parse_odds method.")
 
     @staticmethod
