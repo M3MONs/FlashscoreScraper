@@ -9,3 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .vscode/
+
+# Test fixtures
+tests/fixtures/*.html
