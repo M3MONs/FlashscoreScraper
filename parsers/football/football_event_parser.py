@@ -1,29 +1,20 @@
-from dataclasses import dataclass
 from typing import Dict
 from bs4 import BeautifulSoup, Tag
 
+from models.event_data import EventData
 from models.parse_text_element_params import ParseTextElementParams
 from parsers.base_parser import BaseParser
 
 
-@dataclass
-class FootballEventData:
-    date: str | None
-    teams: Dict[str, Dict[str, str | None]]
-    score: str | None
-    detail_status: str | None
-    league: Dict[str, str | None] | None
-
-
 class FootballEventParser:
     @staticmethod
-    def parse_event(soup: BeautifulSoup) -> FootballEventData | None:
+    def parse_event(soup: BeautifulSoup) -> EventData | None:
         date = FootballEventParser.parse_event_date(soup)
-        teams = FootballEventParser.parse_event_teams(soup)
+        participants = FootballEventParser.parse_event_teams(soup)
         score = FootballEventParser.parse_event_score(soup)
         detail_status = FootballEventParser.parse_event_detail_status(soup)
         league = FootballEventParser.parse_event_league(soup)
-        return FootballEventData(date=date, teams=teams, score=score, detail_status=detail_status, league=league)
+        return EventData(date=date, participants=participants, score=score, detail_status=detail_status, league=league)
 
     @staticmethod
     def parse_event_date(soup: BeautifulSoup) -> str:
@@ -31,7 +22,7 @@ class FootballEventParser:
         return BaseParser.parse_text_element(event_date_params)
 
     @staticmethod
-    def parse_event_teams(soup: BeautifulSoup) -> Dict[str, Dict[str, str | None]]:
+    def parse_event_teams(soup: BeautifulSoup) -> list[Dict[str, str | None]]:
         team_elements = soup.find_all("div", class_="participant__participantName")
         team_img_elements = soup.find_all("a", class_="participant__participantLink--team")
 
@@ -40,19 +31,20 @@ class FootballEventParser:
         if len(team_img_elements) != 2:
             raise ValueError(f"Expected 2 team image elements, found {len(team_img_elements)}")
 
-        return {
-            role: FootballEventParser.build_team_info(name_el, link_el)
+        return [
+            FootballEventParser.build_team_info(role, name_el, link_el)
             for role, name_el, link_el in zip(
                 ("home", "away"),
                 team_elements,
                 team_img_elements,
             )
-        }
+        ]
 
     @staticmethod
-    def build_team_info(name_el: Tag, link_el: Tag) -> Dict[str, str | None]:
+    def build_team_info(role: str, name_el: Tag, link_el: Tag) -> Dict[str, str | None]:
         img_tag = link_el.find("img")
         return {
+            "role": role,
             "name": name_el.get_text(strip=True),
             "img": str(img_tag.get("src")) if img_tag else None,
             "link": str(link_el.get("href")) if link_el.get("href") else None,
