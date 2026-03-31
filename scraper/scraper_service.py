@@ -75,12 +75,18 @@ class ScraperService:
 
     def _fetch_odds(self, odds_urls: Dict[str, str], odds_filter: OddsFilter) -> list[OddsResult]:
         """Fetch odds for each odds type, handling exceptions for each individual fetch."""
-        return [self._fetch_single_odds(odds_url, odds_type, odds_filter) for odds_type, odds_url in odds_urls.items()]
+        pages = self.engine.get_pages(odds_urls)
+        return [
+            self._parse_single_odds(odds_type, odds_url, pages.get(odds_type, ""), odds_filter)
+            for odds_type, odds_url in odds_urls.items()
+        ]
 
-    def _fetch_single_odds(self, odds_url: str, odds_type: str, odds_filter: OddsFilter) -> OddsResult:
-        """Fetch odds from a single URL, handling any exceptions that may occur."""
+    def _parse_single_odds(self, odds_type: str, odds_url: str, page_content: str, odds_filter: OddsFilter) -> OddsResult:
+        """Parse odds from already-fetched page content."""
         try:
-            page_content = self.engine.get_page(odds_url)
+            if not page_content:
+                return OddsResult(url=odds_url, odd_type=odds_type, data=None, error="Empty page content")
+
             parsed_odds = self.parser.parse_odds(odds_url, page_content, odds_type, odds_filter)
 
             if parsed_odds.error:
@@ -88,6 +94,6 @@ class ScraperService:
 
             return OddsResult(url=odds_url, odd_type=odds_type, data=parsed_odds.data, error=None)
         except Exception as e:
-            error_msg = f"Failed to fetch odds from {odds_url}: {e}"
+            error_msg = f"Failed to parse odds from {odds_url}: {e}"
             self.logger.error(error_msg, exc_info=True)
             return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=str(e))
