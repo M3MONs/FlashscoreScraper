@@ -13,9 +13,19 @@ class BaseEngine(ABC):
         self.logger.debug(f"Successfully fetched page: {url}")
         return result
 
+    def get_pages(self, urls: dict[str, str]) -> dict[str, str]:
+        self.logger.debug(f"Fetching multiple pages with timeout: {self.timeout}")
+        results = self._get_pages(urls)
+        self.logger.debug("Successfully fetched multiple pages")
+        return results
+
     def _get_page(self, url: str) -> str:
         """Internal method to fetch page content with error handling"""
         raise NotImplementedError("_get_page method must be implemented by subclasses")
+
+    def _get_pages(self, urls: dict[str, str]) -> dict[str, str]:
+        """Internal method to fetch multiple pages with error handling"""
+        raise NotImplementedError("_get_pages method must be implemented by subclasses")
 
     def close(self) -> None:
         self.logger.info(f"Closing {self.__class__.__name__}")
