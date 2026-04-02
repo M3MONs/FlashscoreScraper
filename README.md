@@ -17,11 +17,11 @@ This project provides a scraper to extract sports event information, odds, and o
 
 ## Usage
 
-The scraper provides several commands:
+The scraper provides three commands:
 
 ### Scrape Odds
 ```
-uv run main.py odds <url> [--sport <sport>] [--engine <engine>] [--timeout <seconds>]
+uv run main.py odds <url> [--odds <type1> <type2> ...] [--bookmakers <id1> <id2> ...] [--sport <sport>] [--engine <engine>] [--timeout <seconds>]
 ```
 
 ### Scrape Event Information
@@ -35,9 +35,15 @@ uv run main.py event-info <url> [--sport <sport>] [--engine <engine>] [--timeout
 ```
 
 ### Options
-- `--sport`: Specify sport type (e.g., football, tennis). If not provided, detected from URL.
-- `--engine`: Scraping engine (default: playwright). Available: playwright, curl.
-- `--timeout`: Request timeout in seconds (default: 10).
+
+| Option | Description | Default |
+|---|---|---|
+| `url` | Flashscore event URL | *(required)* |
+| `--sport` | Sport type (e.g. `football`). Auto-detected from URL if not provided. | `None` |
+| `--engine` | Scraping engine: `playwright` or `curl` | `playwright` |
+| `--timeout` | Request timeout in seconds | `10` |
+| `--odds` | *(odds command only)* Specific odds types to scrape (e.g. `1x2-odds`, `over-under`). All types scraped if omitted. | `[]` |
+| `--bookmakers` | *(odds command only)* Bookmaker IDs to include (e.g. `2 16 17`). All bookmakers included if omitted. | `[]` |
 
 ## Supported Sports
 
