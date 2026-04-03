@@ -1,12 +1,18 @@
 import json
-from dataclasses import asdict, is_dataclass
+from dataclasses import is_dataclass
+from enum import Enum
 from typing import Dict, Any  
 
 class JsonFormatter:
     @staticmethod
     def _convert_to_serializable(obj: Any) -> Any:
         if is_dataclass(obj) and not isinstance(obj, type):
-            return asdict(obj)
+            return {
+                k: JsonFormatter._convert_to_serializable(getattr(obj, k))
+                for k in obj.__dataclass_fields__
+            }
+        elif isinstance(obj, Enum):
+            return obj.value
         elif isinstance(obj, dict):
             return {key: JsonFormatter._convert_to_serializable(value) for key, value in obj.items()}
         elif isinstance(obj, (list, tuple)):
