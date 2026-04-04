@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type
+from typing import Any, Dict, Sequence, Type
 import logging
 
+from models.base_event_info import BaseEventInfo
 from models.odds_filter import OddsFilter
 from models.parse_text_element_params import ParseTextElementParams
 from models.odds_parser_result import OddsParserResult
@@ -36,14 +37,24 @@ class BaseParser(ABC):
     def _parse_event(self, url: str, data: Any) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the _parse_event method.")
 
-    def parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
-        self.logger.debug(f"Parsing event info from URL: {url}")
-        result = self._parse_event_info(url, data)
-        self.logger.debug(f"Finished parsing event info from URL: {url}")
+    def detect_available_event_info_types(self, data: Any) -> Sequence[BaseEventInfo]:
+        self.logger.debug("Detecting available event info types")
+        result = self._detect_available_event_info_types(data)
+        self.logger.debug(f"Detected event info types: {[t.value for t in result]}")
         return result
 
     @abstractmethod
-    def _parse_event_info(self, url: str, data: Any) -> Dict[str, Any]:
+    def _detect_available_event_info_types(self, data: Any) -> Sequence[BaseEventInfo]:
+        raise NotImplementedError("Subclasses must implement the _detect_available_event_info_types method.")
+
+    def parse_event_info(self, url: str, data: Any, info_type: str) -> Dict[str, Any]:
+        self.logger.debug(f"Parsing event info from URL: {url}, type: {info_type}")
+        result = self._parse_event_info(url, data, info_type)
+        self.logger.debug(f"Finished parsing event info from URL: {url}, type: {info_type}")
+        return result
+
+    @abstractmethod
+    def _parse_event_info(self, url: str, data: Any, info_type: str) -> Dict[str, Any]:
         raise NotImplementedError("Subclasses must implement the _parse_event_info method.")
 
     def parse_odds(self, url: str, data: Any, odds_type: str, odds_filter: OddsFilter | None = None) -> OddsParserResult:
