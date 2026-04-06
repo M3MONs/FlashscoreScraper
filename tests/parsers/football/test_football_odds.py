@@ -4,18 +4,14 @@ from bs4 import BeautifulSoup
 from models.odds.football_odds import FootballOdds
 from models.odds_parser_row import OddsParserRow
 from parsers.base_odds_parser import BaseOddsParser
+from soup_helpers import load_soup_from_path
 from utils.detect_sport import Sports
 
 FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures"
 
 
 def load_odds_soup(odds_type: FootballOdds) -> BeautifulSoup:
-    path = FIXTURES_DIR / f"football_odds_{odds_type.value}.html"
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return BeautifulSoup(f.read(), "html.parser")
-    except FileNotFoundError:
-        pytest.fail(f"Fixture file not found: {path}")
+    return load_soup_from_path(FIXTURES_DIR / f"football_odds_{odds_type.value}.html")
 
 
 def parse_odds(odds_type: FootballOdds) -> list[OddsParserRow]:
