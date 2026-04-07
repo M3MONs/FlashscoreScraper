@@ -15,5 +15,5 @@ class FlashscoreUrlBuilder:
         parsed = urlparse(event_url)
         base_path = parsed.path.rstrip("/") + "/"
         new_path = posixpath.join(base_path, url_path)
-        parsed = parsed._replace(path=new_path, query="", fragment="")
+        parsed = parsed._replace(path=new_path, fragment="")
         return urlunparse(parsed)
