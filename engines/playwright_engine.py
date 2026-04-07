@@ -37,7 +37,7 @@ class PlaywrightAsyncEngine(BaseEngine):
                 )
                 self.logger.debug("Browser launched successfully")
 
-    async def _fetch_page_async(self, url: str) -> str:
+    async def _fetch_page_async(self, url: str, wait_for_selector: str | None = None) -> str:
         async with self._semaphore:
             await self._init_browser()
             context: BrowserContext = await self._browser.new_context()  # type: ignore
@@ -53,7 +53,10 @@ class PlaywrightAsyncEngine(BaseEngine):
 
             try:
                 self.logger.debug("Fetching page: %s", url)
-                await page.goto(url, wait_until="networkidle", timeout=self.timeout * 1000)
+                wait_until = "load" if wait_for_selector else "networkidle"
+                await page.goto(url, wait_until=wait_until, timeout=self.timeout * 1000)
+                if wait_for_selector:
+                    await page.wait_for_selector(wait_for_selector, timeout=self.timeout * 1000)
                 content = await page.content()
                 self.logger.debug("Successfully fetched page: %s", url)
                 return content
@@ -61,8 +64,11 @@ class PlaywrightAsyncEngine(BaseEngine):
                 await page.close()
                 await context.close()
 
-    async def fetch_pages_async(self, urls: dict[str, str]) -> dict[str, str]:
-        wrap_tasks = [self._wrap_task(key, self._fetch_page_async(url)) for key, url in urls.items()]
+    async def fetch_pages_async(self, urls: dict[str, str], wait_for_selectors: dict[str, str | None] | None = None) -> dict[str, str]:
+        wrap_tasks = [
+            self._wrap_task(key, self._fetch_page_async(url, (wait_for_selectors or {}).get(key)))
+            for key, url in urls.items()
+        ]
         gathered: list[tuple[str, str] | BaseException] = await asyncio.gather(*wrap_tasks, return_exceptions=True)
         results: dict[str, str] = {}
         for item in gathered:
@@ -78,11 +84,11 @@ class PlaywrightAsyncEngine(BaseEngine):
             self.logger.error("Failed to fetch %s: %s", key, e)
             return (key, "")
 
-    def _get_page(self, url: str) -> str:
-        return self._loop.run_until_complete(self._fetch_page_async(url))
+    def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
+        return self._loop.run_until_complete(self._fetch_page_async(url, wait_for_selector))
 
-    def _get_pages(self, urls: dict[str, str]) -> dict[str, str]:
-        return self._loop.run_until_complete(self.fetch_pages_async(urls))
+    def _get_pages(self, urls: dict[str, str], wait_for_selectors: dict[str, str | None] | None = None) -> dict[str, str]:
+        return self._loop.run_until_complete(self.fetch_pages_async(urls, wait_for_selectors))
 
     async def _async_close(self) -> None:
         if self._browser:
