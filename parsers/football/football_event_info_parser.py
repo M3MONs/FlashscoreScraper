@@ -2,7 +2,14 @@ from bs4 import BeautifulSoup, Tag
 from typing import Any, Callable, List
 
 from models.event_info_data import EventInfoData
-from models.event_info.football_event_info import FootballEventInfo, FootballFormEntry, FootballStandingsEntry
+from models.event_info.football_event_info import (
+    FootballEventInfo,
+    FootballFormEntry,
+    FootballStandingsEntry,
+    FootballDrawParticipant,
+    FootballDrawMatch,
+    FootballDrawRound,
+)
 
 _FORM_RESULT_MAP = {
     "win": "W",
@@ -131,5 +138,63 @@ def _parse_form(row: Tag) -> list[FootballFormEntry]:
 
 
 @FootballEventInfoParser._handler(FootballEventInfo.DRAW)
-def _parse_draw(soup: BeautifulSoup) -> EventInfoData:
-    return EventInfoData(info_type=FootballEventInfo.DRAW.tab_label, data={})
+def _parse_draw(soup: BeautifulSoup) -> EventInfoData[list[FootballDrawRound]]:
+    draw_container = soup.find("div", class_="draw")
+    if not draw_container:
+        return EventInfoData(
+            info_type=FootballEventInfo.DRAW.tab_label,
+            data=[],
+            metadata={"error": "Draw container not found"},
+        )
+
+    rounds = [
+        _parse_draw_round(round_el)
+        for round_el in draw_container.find_all("div", class_="draw__round")
+    ]
+    return EventInfoData(info_type=FootballEventInfo.DRAW.tab_label, data=rounds)
+
+
+def _parse_draw_round(round_el: Tag) -> FootballDrawRound:
+    label_el = round_el.find("div", class_="draw__label")
+    name = label_el.get_text(strip=True) if label_el else None
+
+    matches = [
+        _parse_draw_match(bracket)
+        for bracket in round_el.find_all("div", class_="bracket")
+    ]
+    return FootballDrawRound(round_name=name, matches=matches)
+
+
+def _parse_draw_match(bracket: Tag) -> FootballDrawMatch:
+    classes = bracket.get("class") or []
+    is_eventless = "bracket--eventless" in classes
+    is_highlighted = "bracket--defaultHighlighted" in classes
+
+    rows = bracket.find_all("div", class_="bracket__participantRow")
+    home_score_el = bracket.find("div", class_="bracket__result--home")
+    away_score_el = bracket.find("div", class_="bracket__result--away")
+    home_result = home_score_el.find("div", class_="result") if home_score_el else None
+    home_score = home_result.get_text(strip=True) if home_result else None
+    away_result = away_score_el.find("div", class_="result") if away_score_el else None
+    away_score = away_result.get_text(strip=True) if away_result else None
+
+    home = _parse_draw_participant(
+        next((r for r in rows if "bracket__participantRow--home" in (r.get("class") or [])), None),
+        is_home=True,
+        score=home_score,
+    )
+    away = _parse_draw_participant(
+        next((r for r in rows if "bracket__participantRow--away" in (r.get("class") or [])), None),
+        is_home=False,
+        score=away_score,
+    )
+    return FootballDrawMatch(home=home, away=away, is_eventless=is_eventless, is_highlighted=is_highlighted)
+
+
+def _parse_draw_participant(row: Tag | None, *, is_home: bool, score: str | None) -> FootballDrawParticipant | None:
+    if row is None:
+        return None
+    name_el = row.find("span", class_="bracket__name")
+    name = name_el.get_text(strip=True) if name_el else None
+    is_advancing = "bracket__name--advancing" in (name_el.get("class") or [] if name_el else [])
+    return FootballDrawParticipant(name=name, is_home=is_home, is_advancing=is_advancing, score=score)
