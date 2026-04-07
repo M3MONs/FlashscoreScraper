@@ -18,6 +18,15 @@ class ScraperService:
         self.parser = parser
         self._event_url = None
 
+    def __enter__(self) -> "ScraperService":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self.engine.close()
+
     @property
     def event_url(self) -> str | None:
         return self._event_url
