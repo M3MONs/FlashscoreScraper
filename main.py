@@ -6,22 +6,15 @@ from utils.detect_sport import detect_sport_from_url
 from utils.json_formatter import JsonFormatter
 
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", handlers=[logging.StreamHandler()])
-
-
 def scrape_cmd(event_url: str, sport: str | None, engine: str, timeout: int, fetch_func) -> None:
     """Common function for scraping commands with error handling"""
     if sport is None:
         sport = detect_sport_from_url(event_url)
 
-    scraper = ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout)
-    scraper.event_url = event_url
-
-    try:
+    with ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout) as scraper:
+        scraper.event_url = event_url
         data = fetch_func(scraper)
         print(JsonFormatter.to_json(data))
-    finally:
-        scraper.engine.close()
 
 
 def scrape_odds_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10, odds_filter: OddsFilter | None = None) -> None:
@@ -49,11 +42,19 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Flashscore Scraper")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     odds_parser = subparsers.add_parser("odds", help="Scrap odds")
-    odds_parser.add_argument("--odds", nargs="*", default=[], help="Specific odds types to scrape (e.g. '1x2-odds', 'over-under'). If not provided, all available odds types will be scraped")
-    odds_parser.add_argument("--bookmakers", nargs="*", default=[], help="Bookmaker IDs to include (e.g. '2 16 17'). If not provided, all bookmakers are included")
+    odds_parser.add_argument(
+        "--odds",
+        nargs="*",
+        default=[],
+        help="Specific odds types to scrape (e.g. '1x2-odds', 'over-under'). If not provided, all available odds types will be scraped",
+    )
+    odds_parser.add_argument(
+        "--bookmakers", nargs="*", default=[], help="Bookmaker IDs to include (e.g. '2 16 17'). If not provided, all bookmakers are included"
+    )
     add_common_arguments(odds_parser)
 
     event_parser = subparsers.add_parser("event", help="Scrap event information")
@@ -63,6 +64,9 @@ def main() -> None:
     add_common_arguments(event_info_parser)
 
     args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", handlers=[logging.StreamHandler()])
 
     command_dispatch = {
         "odds": lambda: scrape_odds_cmd(args.url, args.sport, args.engine, args.timeout, OddsFilter(odds=args.odds, bookmakers=args.bookmakers)),
