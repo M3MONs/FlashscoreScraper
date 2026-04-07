@@ -19,10 +19,12 @@ class BaseEngine(ABC):
         self.logger.debug("Successfully fetched multiple pages")
         return results
 
+    @abstractmethod
     def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
         """Internal method to fetch page content with error handling"""
         raise NotImplementedError("_get_page method must be implemented by subclasses")
-
+    
+    @abstractmethod
     def _get_pages(self, urls: dict[str, str], wait_for_selectors: dict[str, str | None] | None = None) -> dict[str, str]:
         """Internal method to fetch multiple pages with error handling"""
         raise NotImplementedError("_get_pages method must be implemented by subclasses")
