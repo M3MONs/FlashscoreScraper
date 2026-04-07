@@ -137,7 +137,10 @@ class ScraperService:
         typed_urls: Dict[str, str] = {
             info_type.tab_label: FlashscoreUrlBuilder.build_event_info_url(base_url, info_type.url_path) for info_type in available_types
         }
-        pages = self.engine.get_pages(typed_urls)
+        wait_for_selectors: Dict[str, str | None] = {
+            info_type.tab_label: info_type.wait_for_selector for info_type in available_types
+        }
+        pages = self.engine.get_pages(typed_urls, wait_for_selectors)
 
         return {info_type.tab_label: self._parse_single_info_type(info_type.tab_label, typed_urls, pages) for info_type in available_types}
 
