@@ -4,7 +4,14 @@ from bs4 import BeautifulSoup
 
 from parsers.football.football_event_info_parser import FootballEventInfoParser
 from models.event_info_data import EventInfoData
-from models.event_info.football_event_info import FootballEventInfo, FootballFormEntry, FootballStandingsEntry
+from models.event_info.football_event_info import (
+    FootballEventInfo,
+    FootballFormEntry,
+    FootballStandingsEntry,
+    FootballDrawParticipant,
+    FootballDrawMatch,
+    FootballDrawRound,
+)
 from tests.parsers.soup_helpers import load_soup_from_path
 
 STANDINGS_FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football_event_info_standings.html"
@@ -220,6 +227,121 @@ class TestFootballEventInfoParserDraw:
     def test_draw_no_metadata_error(self, draw_result: EventInfoData) -> None:
         assert "error" not in draw_result.metadata
 
+    def test_draw_data_is_list(self, draw_result: EventInfoData) -> None:
+        assert isinstance(draw_result.data, list)
+
+    def test_draw_rounds_are_correct_type(self, draw_result: EventInfoData) -> None:
+        for round_ in draw_result.data:
+            assert isinstance(round_, FootballDrawRound)
+
+    def test_draw_matches_are_correct_type(self, draw_result: EventInfoData) -> None:
+        for round_ in draw_result.data:
+            for match in round_.matches:
+                assert isinstance(match, FootballDrawMatch)
+
+    def test_draw_participants_are_correct_type(self, draw_result: EventInfoData) -> None:
+        for round_ in draw_result.data:
+            for match in round_.matches:
+                if match.home is not None:
+                    assert isinstance(match.home, FootballDrawParticipant)
+                if match.away is not None:
+                    assert isinstance(match.away, FootballDrawParticipant)
+
 
 class TestFootballEventInfoParserDrawExactValues:
-    pass
+    TOTAL_ROUNDS = 7
+    ROUND_NAMES = [
+        "1/64-finals",
+        "1/32-finals",
+        "1/16-finals",
+        "1/8-finals",
+        "Quarter-finals",
+        "Semi-finals",
+        "Final",
+    ]
+    ROUND_MATCH_COUNTS = [64, 32, 16, 8, 4, 2, 1]
+
+    QF_INDEX = 4
+    QF_HIGHLIGHTED_MATCH_INDEX = 3
+    QF_HIGHLIGHTED_HOME = "Legia"
+    QF_HIGHLIGHTED_AWAY = "Jagiellonia"
+
+    FINAL_HOME = "Pogon Szczecin"
+    FINAL_AWAY = "Legia"
+    FINAL_HIGHLIGHTED = True
+
+    FIRST_ROUND_EVENTLESS_COUNT = 54
+    FIRST_ROUND_TWO_PARTICIPANT_COUNT = 10
+
+    FIRST_64_MATCH_HOME = "Zaglebie Sosnowiec"
+    FIRST_64_MATCH_AWAY = "Sandecja Nowy S."
+    FIRST_64_MATCH_HOME_SCORE = "0"
+    FIRST_64_MATCH_AWAY_SCORE = "1"
+    FIRST_64_MATCH_HOME_ADVANCING = False
+    FIRST_64_MATCH_AWAY_ADVANCING = True
+
+    def test_total_rounds(self, draw_result: EventInfoData) -> None:
+        assert len(draw_result.data) == self.TOTAL_ROUNDS
+
+    def test_round_names(self, draw_result: EventInfoData) -> None:
+        names = [r.round_name for r in draw_result.data]
+        assert names == self.ROUND_NAMES
+
+    def test_round_match_counts(self, draw_result: EventInfoData) -> None:
+        counts = [len(r.matches) for r in draw_result.data]
+        assert counts == self.ROUND_MATCH_COUNTS
+
+    def test_first_round_eventless_count(self, draw_result: EventInfoData) -> None:
+        first_round = draw_result.data[0]
+        eventless = sum(1 for m in first_round.matches if m.is_eventless)
+        assert eventless == self.FIRST_ROUND_EVENTLESS_COUNT
+
+    def test_first_round_two_participant_matches(self, draw_result: EventInfoData) -> None:
+        first_round = draw_result.data[0]
+        two_participant = sum(
+            1 for m in first_round.matches
+            if m.home is not None and m.away is not None
+        )
+        assert two_participant == self.FIRST_ROUND_TWO_PARTICIPANT_COUNT
+
+    def test_scores_parsed_for_completed_match(self, draw_result: EventInfoData) -> None:
+        first_round = draw_result.data[0]
+        match = next(m for m in first_round.matches if m.home is not None and m.away is not None)
+        assert match.home.name == self.FIRST_64_MATCH_HOME
+        assert match.away.name == self.FIRST_64_MATCH_AWAY
+        assert match.home.score == self.FIRST_64_MATCH_HOME_SCORE
+        assert match.away.score == self.FIRST_64_MATCH_AWAY_SCORE
+        assert match.home.is_advancing is self.FIRST_64_MATCH_HOME_ADVANCING
+        assert match.away.is_advancing is self.FIRST_64_MATCH_AWAY_ADVANCING
+
+    def test_qf_highlighted_match(self, draw_result: EventInfoData) -> None:
+        qf = draw_result.data[self.QF_INDEX]
+        match = qf.matches[self.QF_HIGHLIGHTED_MATCH_INDEX]
+        assert match.is_highlighted is True
+        assert match.home is not None
+        assert match.home.name == self.QF_HIGHLIGHTED_HOME
+        assert match.away is not None
+        assert match.away.name == self.QF_HIGHLIGHTED_AWAY
+
+    def test_qf_highlighted_match_home_is_home(self, draw_result: EventInfoData) -> None:
+        match = draw_result.data[self.QF_INDEX].matches[self.QF_HIGHLIGHTED_MATCH_INDEX]
+        assert match.home.is_home is True
+        assert match.away.is_home is False
+
+    def test_qf_non_highlighted_matches(self, draw_result: EventInfoData) -> None:
+        qf = draw_result.data[self.QF_INDEX]
+        non_highlighted = [m for m in qf.matches if not m.is_highlighted]
+        assert len(non_highlighted) == 3
+
+    def test_final_match(self, draw_result: EventInfoData) -> None:
+        final = draw_result.data[-1]
+        assert len(final.matches) == 1
+        match = final.matches[0]
+        assert match.home is not None
+        assert match.home.name == self.FINAL_HOME
+        assert match.away is not None
+        assert match.away.name == self.FINAL_AWAY
+        assert match.is_highlighted is self.FINAL_HIGHLIGHTED
+
+    def test_final_round_name(self, draw_result: EventInfoData) -> None:
+        assert draw_result.data[-1].round_name == "Final"
