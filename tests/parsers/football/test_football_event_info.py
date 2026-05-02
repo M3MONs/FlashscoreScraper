@@ -14,8 +14,8 @@ from models.event_info.football_event_info import (
 )
 from tests.parsers.soup_helpers import load_soup_from_path
 
-STANDINGS_FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football_event_info_standings.html"
-DRAW_FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football_event_info_draw.html"
+STANDINGS_FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football" / "event_info_standings.html"
+DRAW_FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football" / "event_info_draw.html"
 
 
 @pytest.fixture(scope="module")

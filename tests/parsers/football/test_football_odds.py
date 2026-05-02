@@ -7,11 +7,11 @@ from parsers.base_odds_parser import BaseOddsParser
 from soup_helpers import load_soup_from_path
 from utils.detect_sport import Sports
 
-FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures"
+FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures" / "football"
 
 
 def load_odds_soup(odds_type: FootballOdds) -> BeautifulSoup:
-    return load_soup_from_path(FIXTURES_DIR / f"football_odds_{odds_type.value}.html")
+    return load_soup_from_path(FIXTURES_DIR / f"odds_{odds_type.value}.html")
 
 
 def parse_odds(odds_type: FootballOdds) -> list[OddsParserRow]:

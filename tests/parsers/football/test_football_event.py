@@ -3,7 +3,7 @@ from pathlib import Path
 from parsers.football.football_event_parser import FootballEventParser
 from models.event_data import EventData
 
-FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football_event.html"
+FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "football" / "event.html"
 
 
 @pytest.fixture(scope="module")
