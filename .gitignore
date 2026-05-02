@@ -12,3 +12,4 @@ wheels/
 
 # Test fixtures
 tests/fixtures/*.html
+tests/fixtures/football/*.html
