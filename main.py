@@ -9,7 +9,11 @@ from utils.json_formatter import JsonFormatter
 def scrape_cmd(event_url: str, sport: str | None, engine: str, timeout: int, fetch_func) -> None:
     """Common function for scraping commands with error handling"""
     if sport is None:
-        sport = detect_sport_from_url(event_url)
+        try:
+            sport = detect_sport_from_url(event_url)
+        except ValueError as e:
+            print(JsonFormatter.to_json({"error": str(e), "url": event_url}))
+            return
 
     with ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout) as scraper:
         scraper.event_url = event_url
