@@ -116,8 +116,32 @@ class ScraperService:
                 return {}
 
             return {odd_type.value: FlashscoreUrlBuilder.build_odds_url(event_url, odd_type.value.lower()) for odd_type in filtered_odds}
+        except ValueError:
+            return self._discover_odds_urls(event_url, odds)
         except Exception as e:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
+            return {}
+
+    def _discover_odds_urls(self, event_url: str, odds: list[str]) -> Dict[str, str]:
+        """Fallback method to discover odds URLs by parsing the landing page when no odds enum is available."""
+        if odds:
+            self.logger.info(f"No odds enum for sport '{self.parser.sport_type}', using user-specified types: {odds}")
+            return {ot: FlashscoreUrlBuilder.build_odds_url(event_url, ot) for ot in odds}
+
+        try:
+            landing_url = FlashscoreUrlBuilder.build_odds_url(event_url, "")
+            self.logger.info(f"Discovering odds types from {landing_url}")
+            page = self._fetch_page(landing_url)
+            discovered = self.parser.discover_odds_types(page)
+
+            if not discovered:
+                self.logger.warning(f"No odds types discovered for sport '{self.parser.sport_type}'")
+                return {}
+            
+            self.logger.info(f"Discovered odds types: {discovered}")
+            return {ot: FlashscoreUrlBuilder.build_odds_url(event_url, ot) for ot in discovered}
+        except Exception as e:
+            self.logger.warning(f"Failed to discover odds types: {e}", exc_info=True)
             return {}
 
     def _fetch_odds(self, odds_urls: Dict[str, str], odds_filter: OddsFilter) -> list[OddsResult]:
@@ -143,6 +167,7 @@ class ScraperService:
             return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=str(e))
 
     def _fetch_and_parse_info_types(self, base_url: str, available_types: Sequence[BaseEventInfo]) -> Dict[str, Any]:
+        """Fetches and parses multiple types of event info, handling exceptions for each type."""
         typed_urls: Dict[str, str] = {
             info_type.tab_label: FlashscoreUrlBuilder.build_event_info_url(base_url, info_type.url_path) for info_type in available_types
         }
@@ -154,6 +179,7 @@ class ScraperService:
         return {info_type.tab_label: self._parse_single_info_type(info_type.tab_label, typed_urls, pages) for info_type in available_types}
 
     def _parse_single_info_type(self, key: str, typed_urls: Dict[str, str], pages: Dict[str, str]) -> Any:
+        """Parse a single type of event info from the corresponding page content."""
         try:
             return self.parser.parse_event_info(typed_urls[key], pages.get(key, ""), key)
         except Exception as e:
