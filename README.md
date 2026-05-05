@@ -85,6 +85,58 @@ uv run main.py event-info https://www.flashscore.com/match/football/... -v
 | Half Time / Full Time | `ht-ft` |
 | Odd/Even | `odd-even` |
 
+### Any other sport (universal/generic parsing)
+
+Any sport added to the `Sports` enum in `models/sports.py` — even without a dedicated parser — is handled by **universal parsers** that auto-detect the page structure. Currently registered: `volleyball`.
+
+To add a new sport (e.g. `basketball`), extend `models/sports.py`:
+```python
+class Sports(Enum):
+    FOOTBALL = "football"
+    VOLLEYBALL = "volleyball"
+    BASKETBALL = "basketball"  # add new sport here
+```
+
+Once registered, the following works automatically:
+
+- **Event**: Date, participants, score, status, and league.
+- **Odds**: Column headers from the odds table (e.g. `1`, `2`, `Over`, `Under`) are extracted and used as `type`/`value` in each `OddsParserRowData`. Handicap or total values (`wcl-oddsValue` spans) are used when present. Bookmaker names and IDs are always detected. Rows with no odds are skipped.
+- **Event info** (`event-info` command): Available info types (`draw`, `h2h`, `standings`) are auto-detected from the page tabs. Each type is parsed independently — for example, requesting `draw` never accidentally returns `h2h` data. CSS wait selectors (`.draw__cover`, `.h2h__section`, `.ui-table`) prevent fetch timeouts on slow pages.
+
+When using a non-football sport, pass `--sport` explicitly:
+```bash
+uv run main.py event-info <url> --sport volleyball
+uv run main.py odds <url> --sport basketball
+```
+
+### Creating dedicated parsers (advanced)
+
+The universal parser may not always return correct or complete data — odds columns may be misaligned, event info may miss details, or the page structure may differ from expectations. In such cases, create dedicated parsers for the sport.
+
+Use the **football parsers** in `parsers/football/` as a reference:
+
+| File | Purpose |
+|---|---|
+| `football_parser.py` | Top-level parser (registers with `@BaseParser, sport_type="football"`) |
+| `football_event_parser.py` | Event data (date, participants, score, status, league) |
+| `football_event_info_parser.py` | Event info handlers (standings, draw, h2h) — uses `@_handler(InfoType)` decorator |
+| `odds/*.py` | Per-odds-type parsers (e.g. `one_x_two.py`, `over_under.py`) — each extends `BaseOddsParser` with `sport_type` and `odds_type` |
+
+Key registration patterns (all auto-discovered, no manual imports needed):
+
+- **Sport parser**: `class MySportParser(BaseParser, sport_type="mysport")`
+- **Odds parser**: `class MyOddsParser(BaseOddsParser)` with `sport_type` and `odds_type` class attributes
+- **Odds enum**: `@register_odds("mysport")` on an odds enum class in `models/odds/`
+- **Event info enum**: `@register_event_info("mysport")` on an event info enum class in `models/event_info/`
+
+```python
+# Example: registering a new sport parser
+class MySportParser(BaseParser, sport_type="mysport"):
+    def _parse_event(self, url, data): ...
+    def _parse_odds(self, url, data, odds_type, odds_filter): ...
+    def _parse_event_info(self, url, data, info_type): ...
+```
+
 ## Running Tests
 
 ```bash
