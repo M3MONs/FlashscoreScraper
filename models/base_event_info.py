@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import NamedTuple
 
 
 class BaseEventInfo(Enum):
@@ -18,3 +19,11 @@ class BaseEventInfo(Enum):
     def wait_for_selector(self) -> str | None:
         """Optional CSS selector to wait for before capturing page content."""
         return None
+
+
+class GenericEventInfo(NamedTuple):
+    """Fallback type when no sport-specific event info enum is registered."""
+
+    tab_label: str
+    url_path: str
+    wait_for_selector: str | None = None
