@@ -15,7 +15,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["engines", "models", "parsers", "scraper", "utils", "tests", "tests.fixtures", "tests.parsers", "tests.parsers.football"]
+packages = ["flashscorescraper", "engines", "models", "parsers", "scraper", "utils", "tests", "tests.fixtures", "tests.parsers", "tests.parsers.football"]
 
 [dependency-groups]
 dev = [
