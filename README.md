@@ -6,6 +6,34 @@ A command-line tool for scraping sports data from [Flashscore](https://www.flash
 
 This project provides a scraper to extract sports event information, odds, and other data from Flashscore website.
 
+## Library Usage
+
+
+```python
+from flashscorescraper import scrape_odds, scrape_event, scrape_event_info
+from models.odds_filter import OddsFilter
+
+# Scrape odds — sport auto-detected from URL
+result = scrape_odds("https://www.flashscore.com/match/football/abc123/")
+
+# Filter by odds type and bookmakers
+result = scrape_odds(
+    "https://www.flashscore.com/match/football/abc123/",
+    sport="football",
+    odds_filter=OddsFilter(odds=["1x2-odds", "over-under"], bookmakers=["2", "16"]),
+)
+
+# Scrape main event data
+event = scrape_event("https://www.flashscore.com/match/football/abc123/")
+
+# Scrape extended event info (standings, h2h, draw, …)
+info = scrape_event_info("https://www.flashscore.com/match/football/abc123/")
+```
+
+Sport is auto-detected from the URL when `sport` is omitted. Pass it explicitly for non-standard URLs or unsupported sports.
+
+---
+
 ## Installation
 
 1. Ensure you have Python 3.13 or higher installed.
