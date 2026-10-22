@@ -84,7 +84,11 @@ class ScraperService:
 
     def fetch_and_parse_event(self, event_url: str | None = None) -> dict[str, Any]:
         """Fetches the event page and parses the main event data."""
-        return self._fetch_and_parse_generic(event_url, self.parser.parse_event)
+        url = self._resolve_event_url(event_url)
+        event = self._fetch_and_parse_generic(url, self.parser.parse_event)
+        if "error" not in event:
+            event = {"event_url": url, **event}
+        return event
 
     def fetch_and_parse_event_with_stats(self, event_url: str | None = None) -> dict[str, Any]:
         """Fetches the main event data and adds match statistics under the 'stats' key."""
@@ -115,9 +119,9 @@ class ScraperService:
         available_types = self._resolve_event_info_types(page_content)
 
         if not available_types:
-            return {}
+            return {"event_url": url}
 
-        return self._fetch_and_parse_info_types(url, available_types)
+        return {"event_url": url, **self._fetch_and_parse_info_types(url, available_types)}
 
     def _fetch_and_parse_generic(self, event_url: str | None, parse_func) -> dict[str, Any]:
         """Common method for fetching and parsing with error handling"""
