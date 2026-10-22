@@ -1,15 +1,17 @@
-from bs4 import BeautifulSoup, Tag
-from typing import Any, Callable, List
+from collections.abc import Callable
+from typing import Any, ClassVar
 
-from models.event_info_data import EventInfoData
+from bs4 import BeautifulSoup, Tag
+
 from models.event_info.football_event_info import (
+    FootballDrawMatch,
+    FootballDrawParticipant,
+    FootballDrawRound,
     FootballEventInfo,
     FootballFormEntry,
     FootballStandingsEntry,
-    FootballDrawParticipant,
-    FootballDrawMatch,
-    FootballDrawRound,
 )
+from models.event_info_data import EventInfoData
 
 _FORM_RESULT_MAP = {
     "win": "W",
@@ -19,7 +21,7 @@ _FORM_RESULT_MAP = {
 
 
 class FootballEventInfoParser:
-    _handlers = {}
+    _handlers: ClassVar[dict[FootballEventInfo, Callable[..., Any]]] = {}
 
     @classmethod
     def _handler(cls, info_type: FootballEventInfo) -> Callable[..., Any]:
@@ -30,12 +32,12 @@ class FootballEventInfoParser:
         return decorator
 
     @staticmethod
-    def detect_available_types(soup: BeautifulSoup) -> List[FootballEventInfo]:
+    def detect_available_types(soup: BeautifulSoup) -> list[FootballEventInfo]:
         tabs_container = soup.find("div", attrs={"data-testid": "wcl-tabs"})
         if not tabs_container:
             return []
 
-        tab_labels = {btn.get_text(strip=True).lower() for btn in tabs_container.find_all("button", attrs={"data-testid": "wcl-tab"})}
+        tab_labels = {btn.get_text(strip=True).lower() for btn in tabs_container.find_all(attrs={"data-testid": "wcl-tab"})}
 
         return [info_type for info_type in FootballEventInfo if info_type.tab_label in tab_labels]
 
@@ -170,21 +172,20 @@ def _parse_draw_match(bracket: Tag) -> FootballDrawMatch:
     is_eventless = "bracket--eventless" in classes
     is_highlighted = "bracket--defaultHighlighted" in classes
 
-    rows = bracket.find_all("div", class_="bracket__participantRow")
     home_score_el = bracket.find("div", class_="bracket__result--home")
     away_score_el = bracket.find("div", class_="bracket__result--away")
-    home_result = home_score_el.find("div", class_="result") if home_score_el else None
+    home_result = home_score_el.find(class_="bracket__score") if home_score_el else None
     home_score = home_result.get_text(strip=True) if home_result else None
-    away_result = away_score_el.find("div", class_="result") if away_score_el else None
+    away_result = away_score_el.find(class_="bracket__score") if away_score_el else None
     away_score = away_result.get_text(strip=True) if away_result else None
 
     home = _parse_draw_participant(
-        next((r for r in rows if "bracket__participantRow--home" in (r.get("class") or [])), None),
+        bracket.find("div", class_="bracket__participantRow--home"),
         is_home=True,
         score=home_score,
     )
     away = _parse_draw_participant(
-        next((r for r in rows if "bracket__participantRow--away" in (r.get("class") or [])), None),
+        bracket.find("div", class_="bracket__participantRow--away"),
         is_home=False,
         score=away_score,
     )
@@ -194,7 +195,7 @@ def _parse_draw_match(bracket: Tag) -> FootballDrawMatch:
 def _parse_draw_participant(row: Tag | None, *, is_home: bool, score: str | None) -> FootballDrawParticipant | None:
     if row is None:
         return None
-    name_el = row.find("span", class_="bracket__name")
+    name_el = row.find("span", attrs={"data-testid": "wcl-simple-text-01"})
     name = name_el.get_text(strip=True) if name_el else None
-    is_advancing = "bracket__name--advancing" in (name_el.get("class") or [] if name_el else [])
+    is_advancing = any(c.startswith("wcl-bold") for c in (name_el.get("class") or [] if name_el else []))
     return FootballDrawParticipant(name=name, is_home=is_home, is_advancing=is_advancing, score=score)
