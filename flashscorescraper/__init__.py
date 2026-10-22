@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from models.fetch_odds_response import FetchOddsResponse
 from models.odds_filter import OddsFilter
@@ -30,10 +30,13 @@ def scrape_event(
     sport: str | None = None,
     engine: str = "playwright",
     timeout: int = 10,
-) -> Dict[str, Any]:
+    with_stats: bool = False,
+) -> dict[str, Any]:
     sport = _resolve_sport(event_url, sport)
     with ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout) as scraper:
         scraper.event_url = event_url
+        if with_stats:
+            return scraper.fetch_and_parse_event_with_stats()
         return scraper.fetch_and_parse_event()
 
 
@@ -42,7 +45,7 @@ def scrape_event_info(
     sport: str | None = None,
     engine: str = "playwright",
     timeout: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     sport = _resolve_sport(event_url, sport)
     with ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout) as scraper:
         scraper.event_url = event_url
