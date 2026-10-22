@@ -1,13 +1,16 @@
-from typing import Dict, Any, Sequence
+import logging
+from collections.abc import Sequence
+from typing import Any, Self
+
+from engines.base_engine import BaseEngine
 from models.base_event_info import BaseEventInfo
 from models.fetch_odds_response import FetchOddsResponse
+from models.odds.odds_factory import get_odds_enum
 from models.odds_filter import OddsFilter
 from models.odds_result import OddsResult
-from engines.base_engine import BaseEngine
-from models.odds.odds_factory import get_odds_enum
 from parsers.base_parser import BaseParser
-import logging
-
+from stats import get_stats_parser
+from stats.base_stats_parser import BaseStatsParser
 from utils.url_builder import FlashscoreUrlBuilder
 
 
@@ -18,7 +21,7 @@ class ScraperService:
         self.parser = parser
         self._event_url = None
 
-    def __enter__(self) -> "ScraperService":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -52,7 +55,7 @@ class ScraperService:
             self.logger.error(f"Failed to fetch page {url}: {e}", exc_info=True)
             raise
 
-    def _fetch_pages(self, urls: Dict[str, str]) -> Dict[str, str]:
+    def _fetch_pages(self, urls: dict[str, str]) -> dict[str, str]:
         """Fetches multiple pages given a dictionary of URLs."""
         try:
             return self.engine.get_pages(urls)
@@ -79,11 +82,33 @@ class ScraperService:
         fetched_odds = self._fetch_odds(odds_urls, odds_filter)
         return FetchOddsResponse(event_url=url, odds=fetched_odds)
 
-    def fetch_and_parse_event(self, event_url: str | None = None) -> Dict[str, Any]:
+    def fetch_and_parse_event(self, event_url: str | None = None) -> dict[str, Any]:
         """Fetches the event page and parses the main event data."""
         return self._fetch_and_parse_generic(event_url, self.parser.parse_event)
 
-    def fetch_and_parse_event_info(self, event_url: str | None = None) -> Dict[str, Any]:
+    def fetch_and_parse_event_with_stats(self, event_url: str | None = None) -> dict[str, Any]:
+        """Fetches the main event data and adds match statistics under the 'stats' key."""
+        url = self._resolve_event_url(event_url)
+        stats_parser = get_stats_parser(self.parser.sport_type)
+        event = self.fetch_and_parse_event(url)
+
+        if "error" not in event:
+            event["stats"] = self._fetch_and_parse_stats(url, stats_parser)
+
+        return event
+
+    def _fetch_and_parse_stats(self, event_url: str, stats_parser: BaseStatsParser) -> dict[str, Any]:
+        """Fetches and parses the stats page, raises ValueError when the event has no stats."""
+        stats_url = FlashscoreUrlBuilder.build_event_info_url(event_url, stats_parser.url_path)
+        try:
+            page_content = self.engine.get_page(stats_url, stats_parser.wait_for_selector)
+        except Exception as e:
+            # Playwright times out on wait_for_selector when the event has no stats (e.g. not started yet)
+            self.logger.debug(f"Failed to fetch stats page {stats_url}: {e}", exc_info=True)
+            raise ValueError(f"No stats available for {event_url}") from e
+        return stats_parser.parse(page_content)
+
+    def fetch_and_parse_event_info(self, event_url: str | None = None) -> dict[str, Any]:
         """Fetches the event page, detects available event info types, and parses each type of event info."""
         url = self._resolve_event_url(event_url)
         page_content = self._fetch_page(url)
@@ -94,7 +119,7 @@ class ScraperService:
 
         return self._fetch_and_parse_info_types(url, available_types)
 
-    def _fetch_and_parse_generic(self, event_url: str | None, parse_func) -> Dict[str, Any]:
+    def _fetch_and_parse_generic(self, event_url: str | None, parse_func) -> dict[str, Any]:
         """Common method for fetching and parsing with error handling"""
         url = self._resolve_event_url(event_url)
 
@@ -105,7 +130,7 @@ class ScraperService:
             self.logger.error(f"Failed to fetch and parse data from {url}: {e}", exc_info=True)
             return {"error": str(e), "url": url}
 
-    def _get_odds_urls_safely(self, event_url: str, odds: list[str]) -> Dict[str, str]:
+    def _get_odds_urls_safely(self, event_url: str, odds: list[str]) -> dict[str, str]:
         """Securely get odds URLs, handling any exceptions that may occur."""
         try:
             all_odds = list(get_odds_enum(self.parser.sport_type))
@@ -122,7 +147,7 @@ class ScraperService:
             self.logger.error(f"Failed to get odds URLs for {event_url}: {e}", exc_info=True)
             return {}
 
-    def _discover_odds_urls(self, event_url: str, odds: list[str]) -> Dict[str, str]:
+    def _discover_odds_urls(self, event_url: str, odds: list[str]) -> dict[str, str]:
         """Fallback method to discover odds URLs by parsing the landing page when no odds enum is available."""
         if odds:
             self.logger.info(f"No odds enum for sport '{self.parser.sport_type}', using user-specified types: {odds}")
@@ -144,7 +169,7 @@ class ScraperService:
             self.logger.warning(f"Failed to discover odds types: {e}", exc_info=True)
             return {}
 
-    def _fetch_odds(self, odds_urls: Dict[str, str], odds_filter: OddsFilter) -> list[OddsResult]:
+    def _fetch_odds(self, odds_urls: dict[str, str], odds_filter: OddsFilter) -> list[OddsResult]:
         """Fetch odds for each odds type, handling exceptions for each individual fetch."""
         pages = self._fetch_pages(odds_urls)
         return [self._parse_single_odds(odds_type, odds_url, pages.get(odds_type, ""), odds_filter) for odds_type, odds_url in odds_urls.items()]
@@ -166,19 +191,19 @@ class ScraperService:
             self.logger.error(error_msg, exc_info=True)
             return OddsResult(url=odds_url, odd_type=odds_type, data=None, error=str(e))
 
-    def _fetch_and_parse_info_types(self, base_url: str, available_types: Sequence[BaseEventInfo]) -> Dict[str, Any]:
+    def _fetch_and_parse_info_types(self, base_url: str, available_types: Sequence[BaseEventInfo]) -> dict[str, Any]:
         """Fetches and parses multiple types of event info, handling exceptions for each type."""
-        typed_urls: Dict[str, str] = {
+        typed_urls: dict[str, str] = {
             info_type.tab_label: FlashscoreUrlBuilder.build_event_info_url(base_url, info_type.url_path) for info_type in available_types
         }
-        wait_for_selectors: Dict[str, str | None] = {
+        wait_for_selectors: dict[str, str | None] = {
             info_type.tab_label: info_type.wait_for_selector for info_type in available_types
         }
         pages = self.engine.get_pages(typed_urls, wait_for_selectors)
 
         return {info_type.tab_label: self._parse_single_info_type(info_type.tab_label, typed_urls, pages) for info_type in available_types}
 
-    def _parse_single_info_type(self, key: str, typed_urls: Dict[str, str], pages: Dict[str, str]) -> Any:
+    def _parse_single_info_type(self, key: str, typed_urls: dict[str, str], pages: dict[str, str]) -> Any:
         """Parse a single type of event info from the corresponding page content."""
         try:
             return self.parser.parse_event_info(typed_urls[key], pages.get(key, ""), key)
