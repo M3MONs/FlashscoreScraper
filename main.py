@@ -1,5 +1,6 @@
 import argparse
 import logging
+
 from models.odds_filter import OddsFilter
 from scraper.scraper_factory import ScraperFactory
 from utils.detect_sport import detect_sport_from_url
@@ -26,9 +27,13 @@ def scrape_odds_cmd(event_url: str, sport: str | None = None, engine: str = "cur
     scrape_cmd(event_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_odds(odds_filter=odds_filter))
 
 
-def scrape_event_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10) -> None:
+def scrape_event_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10, with_stats: bool = False) -> None:
     """CLI interface for scraping event information"""
-    scrape_cmd(event_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_event())
+    fetch_func = (lambda scraper: scraper.fetch_and_parse_event_with_stats()) if with_stats else (lambda scraper: scraper.fetch_and_parse_event())
+    try:
+        scrape_cmd(event_url, sport, engine, timeout, fetch_func)
+    except ValueError as e:
+        print(JsonFormatter.to_json({"error": str(e), "url": event_url}))
 
 
 def scrape_event_info_cmd(event_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10) -> None:
@@ -62,6 +67,7 @@ def main() -> None:
     add_common_arguments(odds_parser)
 
     event_parser = subparsers.add_parser("event", help="Scrap event information")
+    event_parser.add_argument("--with-stats", action="store_true", help="Include match statistics in the 'stats' field (supported sports only)")
     add_common_arguments(event_parser)
 
     event_info_parser = subparsers.add_parser("event-info", help="Scrap context information")
@@ -74,7 +80,7 @@ def main() -> None:
 
     command_dispatch = {
         "odds": lambda: scrape_odds_cmd(args.url, args.sport, args.engine, args.timeout, OddsFilter(odds=args.odds, bookmakers=args.bookmakers)),
-        "event": lambda: scrape_event_cmd(args.url, args.sport, args.engine, args.timeout),
+        "event": lambda: scrape_event_cmd(args.url, args.sport, args.engine, args.timeout, args.with_stats),
         "event-info": lambda: scrape_event_info_cmd(args.url, args.sport, args.engine, args.timeout),
     }
 
