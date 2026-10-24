@@ -22,10 +22,9 @@ class FlashscoreUrlBuilder:
         return urlunparse(parsed)
 
     @staticmethod
-    def build_league_url(sport: str, league: str, section: str) -> str:
-        """Builds https://www.flashscore.com/<sport>/<league>/<section>/ from example 'germany/bundesliga' or a full league URL."""
-        path = urlparse(league).path if "://" in league else league
-        segments = [segment for segment in path.split("/") if segment]
+    def build_league_url(sport: str, league_url: str, section: str) -> str:
+        """Builds https://www.flashscore.com/<sport>/<league>/<section>/ from a league URL (with or without a results/fixtures suffix)."""
+        segments = [segment for segment in urlparse(league_url).path.split("/") if segment]
         if segments and segments[0] == sport:
             segments = segments[1:]
         if segments and segments[-1] in LEAGUE_SECTIONS:
