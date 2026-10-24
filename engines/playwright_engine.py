@@ -1,12 +1,18 @@
 import asyncio
-from typing import Any, Coroutine
+from collections.abc import Coroutine
+from typing import Any
+
+from playwright.async_api import Browser, BrowserContext, Page, Playwright
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from engines.base_engine import BaseEngine
 from engines.engine_factory import register_engine
-from playwright.async_api import Browser, BrowserContext, Page, Playwright
 
 
 @register_engine("playwright")
 class PlaywrightAsyncEngine(BaseEngine):
+    _MAX_LOAD_MORE_CLICKS = 50
+
     def __init__(self, timeout: int = 10, max_concurrent: int = 4) -> None:
         super().__init__(timeout)
         self.max_concurrent = max_concurrent
@@ -37,7 +43,7 @@ class PlaywrightAsyncEngine(BaseEngine):
                 )
                 self.logger.debug("Browser launched successfully")
 
-    async def _fetch_page_async(self, url: str, wait_for_selector: str | None = None) -> str:
+    async def _fetch_page_async(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
         async with self._semaphore:
             await self._init_browser()
             context: BrowserContext = await self._browser.new_context()  # type: ignore
@@ -57,12 +63,32 @@ class PlaywrightAsyncEngine(BaseEngine):
                 await page.goto(url, wait_until=wait_until, timeout=self.timeout * 1000)
                 if wait_for_selector:
                     await page.wait_for_selector(wait_for_selector, timeout=self.timeout * 1000)
+                if load_more_selector and wait_for_selector:
+                    await self._click_load_more(page, load_more_selector, wait_for_selector)
                 content = await page.content()
                 self.logger.debug("Successfully fetched page: %s", url)
                 return content
             finally:
                 await page.close()
                 await context.close()
+
+    async def _click_load_more(self, page: Page, load_more_selector: str, item_selector: str) -> None:
+        """Clicks the load-more button until it disappears or stops adding items (capped by _MAX_LOAD_MORE_CLICKS)."""
+        for _ in range(self._MAX_LOAD_MORE_CLICKS):
+            button = page.locator(load_more_selector).first
+            if not await button.is_visible():
+                return
+            items_before = await page.locator(item_selector).count()
+            await button.click(timeout=self.timeout * 1000)
+            try:
+                await page.wait_for_function(
+                    "([selector, count]) => document.querySelectorAll(selector).length > count",
+                    arg=[item_selector, items_before],
+                    timeout=self.timeout * 1000,
+                )
+            except PlaywrightTimeoutError:
+                self.logger.debug("Load-more click added no items, stopping")
+                return
 
     async def fetch_pages_async(self, urls: dict[str, str], wait_for_selectors: dict[str, str | None] | None = None) -> dict[str, str]:
         wrap_tasks = [
@@ -84,8 +110,8 @@ class PlaywrightAsyncEngine(BaseEngine):
             self.logger.error("Failed to fetch %s: %s", key, e)
             return (key, "")
 
-    def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
-        return self._loop.run_until_complete(self._fetch_page_async(url, wait_for_selector))
+    def _get_page(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
+        return self._loop.run_until_complete(self._fetch_page_async(url, wait_for_selector, load_more_selector))
 
     def _get_pages(self, urls: dict[str, str], wait_for_selectors: dict[str, str | None] | None = None) -> dict[str, str]:
         return self._loop.run_until_complete(self.fetch_pages_async(urls, wait_for_selectors))

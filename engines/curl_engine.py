@@ -1,8 +1,7 @@
-from engines.base_engine import BaseEngine
 from curl_cffi import requests
 
+from engines.base_engine import BaseEngine
 from engines.engine_factory import register_engine
-
 
 """ INFO: Not working due to flashscore javascript rendering, but left for reference and future use if needed. """
 @register_engine("curl")
@@ -10,7 +9,7 @@ class CurlEngine(BaseEngine):
     def __init__(self, timeout: int = 10) -> None:
         super().__init__(timeout)
 
-    def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
+    def _get_page(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
         response = requests.get(url, timeout=self.timeout, impersonate="safari15_3")
 
         if response.status_code != 200:
