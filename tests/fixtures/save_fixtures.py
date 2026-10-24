@@ -34,7 +34,7 @@ FIXTURE_CONFIGS = {
             },
         ],
         "league": [
-            {"league": "germany/bundesliga"},
+            {"url": "https://www.flashscore.com/football/germany/bundesliga/"},
         ],
     },
 }
@@ -62,7 +62,7 @@ def build_items(config: dict, save_dir: Path, sport: Sports) -> list[tuple[str, 
 
     for entry in config.get("league", []):
         for section in LEAGUE_SECTIONS:
-            league_url = FlashscoreUrlBuilder.build_league_url(sport.value, entry["league"], section)
+            league_url = FlashscoreUrlBuilder.build_league_url(sport.value, entry["url"], section)
             items.append((league_url, save_dir / f"league_{section}.html", FootballLeagueParser.match_selector))
 
     return items

@@ -8,6 +8,7 @@ from scraper.scraper_service import ScraperService
 from utils.url_builder import FlashscoreUrlBuilder
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "football"
+LEAGUE_URL = "https://www.flashscore.com/football/germany/bundesliga/"
 RESULTS_URL = "https://www.flashscore.com/football/germany/bundesliga/results/"
 FIXTURES_URL = "https://www.flashscore.com/football/germany/bundesliga/fixtures/"
 
@@ -47,14 +48,12 @@ class TestBuildLeagueUrl:
     @pytest.mark.parametrize(
         "league",
         [
-            "germany/bundesliga",
-            "/germany/bundesliga/",
-            "football/germany/bundesliga",
             "https://www.flashscore.com/football/germany/bundesliga/",
             "https://www.flashscore.com/football/germany/bundesliga/results/",
+            "https://www.flashscore.com/football/germany/bundesliga/fixtures/?foo=bar",
         ],
     )
-    def test_normalizes_league_input(self, league: str) -> None:
+    def test_normalizes_league_url(self, league: str) -> None:
         assert FlashscoreUrlBuilder.build_league_url("football", league, "results") == RESULTS_URL
 
 
@@ -62,7 +61,7 @@ class TestFetchAndParseLeague:
     def test_merges_results_and_fixtures(self) -> None:
         service, engine = _service("football", {RESULTS_URL: _read_fixture("league_results.html"), FIXTURES_URL: _read_fixture("league_fixtures.html")})
 
-        result = service.fetch_and_parse_league("germany/bundesliga")
+        result = service.fetch_and_parse_league(LEAGUE_URL)
 
         statuses = {match.status for match in result["matches"]}
         assert statuses == {"finished", "scheduled"}
@@ -73,14 +72,14 @@ class TestFetchAndParseLeague:
     def test_missing_section_is_skipped(self) -> None:
         service, _ = _service("football", {RESULTS_URL: _read_fixture("league_results.html")})
 
-        result = service.fetch_and_parse_league("germany/bundesliga")
+        result = service.fetch_and_parse_league(LEAGUE_URL)
 
         assert {match.status for match in result["matches"]} == {"finished"}
 
     def test_all_sections_failing_returns_error(self) -> None:
         service, _ = _service("football", {})
 
-        result = service.fetch_and_parse_league("germany/bundesliga")
+        result = service.fetch_and_parse_league(LEAGUE_URL)
 
         assert result["error"]
         assert result["url"] == RESULTS_URL
@@ -89,4 +88,4 @@ class TestFetchAndParseLeague:
         service, _ = _service("volleyball", {})
 
         with pytest.raises(ValueError, match="not supported"):
-            service.fetch_and_parse_league("poland/plusliga")
+            service.fetch_and_parse_league("https://www.flashscore.com/volleyball/poland/plusliga/")
