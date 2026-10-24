@@ -53,13 +53,11 @@ def scrape_event_info(
 
 
 def scrape_league(
-    league: str,
+    league_url: str,
     sport: str | None = None,
     engine: str = "playwright",
     timeout: int = 10,
 ) -> dict[str, Any]:
-    """`league` is a path like 'germany/bundesliga' or a full league URL (the sport is then detected from it)."""
-    if sport is None:
-        sport = detect_sport_from_url(league) if "://" in league else "football"
+    sport = _resolve_sport(league_url, sport)
     with ScraperFactory.create_scraper(engine_type=engine, sport_type=sport, timeout=timeout) as scraper:
-        return scraper.fetch_and_parse_league(league)
+        return scraper.fetch_and_parse_league(league_url)

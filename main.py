@@ -41,6 +41,14 @@ def scrape_event_info_cmd(event_url: str, sport: str | None = None, engine: str 
     scrape_cmd(event_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_event_info())
 
 
+def scrape_league_cmd(league_url: str, sport: str | None = None, engine: str = "curl", timeout: int = 10) -> None:
+    """CLI interface for scraping finished and upcoming matches of a league"""
+    try:
+        scrape_cmd(league_url, sport, engine, timeout, lambda scraper: scraper.fetch_and_parse_league(league_url))
+    except ValueError as e:
+        print(JsonFormatter.to_json({"error": str(e), "url": league_url}))
+
+
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     """Add common arguments to a subparser"""
     parser.add_argument("url", help="URL Flashscore")
@@ -73,6 +81,9 @@ def main() -> None:
     event_info_parser = subparsers.add_parser("event-info", help="Scrap context information")
     add_common_arguments(event_info_parser)
 
+    league_parser = subparsers.add_parser("league", help="List finished and upcoming matches of a league")
+    add_common_arguments(league_parser)
+
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -82,6 +93,7 @@ def main() -> None:
         "odds": lambda: scrape_odds_cmd(args.url, args.sport, args.engine, args.timeout, OddsFilter(odds=args.odds, bookmakers=args.bookmakers)),
         "event": lambda: scrape_event_cmd(args.url, args.sport, args.engine, args.timeout, args.with_stats),
         "event-info": lambda: scrape_event_info_cmd(args.url, args.sport, args.engine, args.timeout),
+        "league": lambda: scrape_league_cmd(args.url, args.sport, args.engine, args.timeout),
     }
 
     if args.command in command_dispatch:

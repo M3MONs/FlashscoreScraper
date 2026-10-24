@@ -103,7 +103,7 @@ class ScraperService:
 
         return event
 
-    def fetch_and_parse_league(self, league: str) -> dict[str, Any]:
+    def fetch_and_parse_league(self, league_url: str) -> dict[str, Any]:
         """Fetches the league results and fixtures pages and returns all matches (finished and scheduled) in one list."""
         league_parser = get_league_parser(self.parser.sport_type)
         sport = self.parser.sport_type
@@ -111,7 +111,7 @@ class ScraperService:
         errors: list[str] = []
 
         for section in LEAGUE_SECTIONS:
-            url = FlashscoreUrlBuilder.build_league_url(sport, league, section)
+            url = FlashscoreUrlBuilder.build_league_url(sport, league_url, section)
             try:
                 page_content = self.engine.get_page(url, league_parser.match_selector, league_parser.load_more_selector)
             except Exception as e:
@@ -123,9 +123,9 @@ class ScraperService:
                 matches.setdefault(match.event_url, match)
 
         if len(errors) == len(LEAGUE_SECTIONS):
-            return {"error": f"Failed to fetch league pages for {league}", "url": errors[0]}
+            return {"error": f"Failed to fetch league pages for {league_url}", "url": errors[0]}
 
-        return {"league": league, "matches": list(matches.values())}
+        return {"league_url": league_url, "matches": list(matches.values())}
 
     def _fetch_and_parse_stats(self, event_url: str, stats_parser: BaseStatsParser) -> dict[str, Any]:
         """Fetches and parses the stats page, raises ValueError when the event has no stats."""
