@@ -3,15 +3,17 @@ from collections.abc import Sequence
 from typing import Any, Self
 
 from engines.base_engine import BaseEngine
+from league import get_league_parser
 from models.base_event_info import BaseEventInfo
 from models.fetch_odds_response import FetchOddsResponse
+from models.league_match import LeagueMatch
 from models.odds.odds_factory import get_odds_enum
 from models.odds_filter import OddsFilter
 from models.odds_result import OddsResult
 from parsers.base_parser import BaseParser
 from stats import get_stats_parser
 from stats.base_stats_parser import BaseStatsParser
-from utils.url_builder import FlashscoreUrlBuilder
+from utils.url_builder import LEAGUE_SECTIONS, FlashscoreUrlBuilder
 
 
 class ScraperService:
@@ -100,6 +102,30 @@ class ScraperService:
             event["stats"] = self._fetch_and_parse_stats(url, stats_parser)
 
         return event
+
+    def fetch_and_parse_league(self, league: str) -> dict[str, Any]:
+        """Fetches the league results and fixtures pages and returns all matches (finished and scheduled) in one list."""
+        league_parser = get_league_parser(self.parser.sport_type)
+        sport = self.parser.sport_type
+        matches: dict[str, LeagueMatch] = {}
+        errors: list[str] = []
+
+        for section in LEAGUE_SECTIONS:
+            url = FlashscoreUrlBuilder.build_league_url(sport, league, section)
+            try:
+                page_content = self.engine.get_page(url, league_parser.match_selector, league_parser.load_more_selector)
+            except Exception as e:
+                # No matches in a section (e.g. no fixtures at season end) makes Playwright time out on the wait selector
+                self.logger.warning(f"Failed to fetch league page {url}: {e}", exc_info=True)
+                errors.append(url)
+                continue
+            for match in league_parser.parse(page_content):
+                matches.setdefault(match.event_url, match)
+
+        if len(errors) == len(LEAGUE_SECTIONS):
+            return {"error": f"Failed to fetch league pages for {league}", "url": errors[0]}
+
+        return {"league": league, "matches": list(matches.values())}
 
     def _fetch_and_parse_stats(self, event_url: str, stats_parser: BaseStatsParser) -> dict[str, Any]:
         """Fetches and parses the stats page, raises ValueError when the event has no stats."""
