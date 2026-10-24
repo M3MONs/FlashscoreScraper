@@ -2,11 +2,12 @@ import argparse
 import logging
 from pathlib import Path
 
+from league.football_league_parser import FootballLeagueParser
 from models.odds.odds_factory import get_odds_enum
 from models.sports import Sports
 from stats.football_stats_parser import FootballStatsParser
 from tests.fixtures._fixture_helpers import fetch_and_save
-from utils.url_builder import FlashscoreUrlBuilder
+from utils.url_builder import LEAGUE_SECTIONS, FlashscoreUrlBuilder
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,6 +33,9 @@ FIXTURE_CONFIGS = {
                 "wait_for_selector": FootballStatsParser.wait_for_selector,
             },
         ],
+        "league": [
+            {"league": "germany/bundesliga"},
+        ],
     },
 }
 
@@ -55,6 +59,11 @@ def build_items(config: dict, save_dir: Path, sport: Sports) -> list[tuple[str, 
 
     for entry in config.get("stats", []):
         items.append((entry["url"], save_dir / "stats.html", entry.get("wait_for_selector")))
+
+    for entry in config.get("league", []):
+        for section in LEAGUE_SECTIONS:
+            league_url = FlashscoreUrlBuilder.build_league_url(sport.value, entry["league"], section)
+            items.append((league_url, save_dir / f"league_{section}.html", FootballLeagueParser.match_selector))
 
     return items
 
