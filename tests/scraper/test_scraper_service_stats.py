@@ -19,7 +19,7 @@ class FakeEngine(BaseEngine):
         self.pages = pages
         self.requested: list[str] = []
 
-    def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
+    def _get_page(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
         self.requested.append(url)
         if url not in self.pages:
             raise TimeoutError(f"Timeout waiting for {wait_for_selector}")
