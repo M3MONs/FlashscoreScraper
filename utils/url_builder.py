@@ -1,6 +1,9 @@
 import posixpath
 from urllib.parse import urlparse, urlunparse
 
+FLASHSCORE_URL = "https://www.flashscore.com"
+LEAGUE_SECTIONS = ("results", "fixtures")
+
 
 class FlashscoreUrlBuilder:
     @staticmethod
@@ -17,3 +20,13 @@ class FlashscoreUrlBuilder:
         new_path = posixpath.join(base_path, url_path)
         parsed = parsed._replace(path=new_path, fragment="")
         return urlunparse(parsed)
+
+    @staticmethod
+    def build_league_url(sport: str, league_url: str, section: str) -> str:
+        """Builds https://www.flashscore.com/<sport>/<league>/<section>/ from a league URL (with or without a results/fixtures suffix)."""
+        segments = [segment for segment in urlparse(league_url).path.split("/") if segment]
+        if segments and segments[0] == sport:
+            segments = segments[1:]
+        if segments and segments[-1] in LEAGUE_SECTIONS:
+            segments = segments[:-1]
+        return f"{FLASHSCORE_URL}/" + "/".join([sport, *segments, section]) + "/"

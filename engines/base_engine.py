@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 
 class BaseEngine(ABC):
@@ -7,9 +7,9 @@ class BaseEngine(ABC):
         self.timeout = timeout
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def get_page(self, url: str, wait_for_selector: str | None = None) -> str:
+    def get_page(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
         self.logger.debug(f"Fetching page: {url} with timeout: {self.timeout}")
-        result = self._get_page(url, wait_for_selector)
+        result = self._get_page(url, wait_for_selector, load_more_selector)
         self.logger.debug(f"Successfully fetched page: {url}")
         return result
 
@@ -20,7 +20,7 @@ class BaseEngine(ABC):
         return results
 
     @abstractmethod
-    def _get_page(self, url: str, wait_for_selector: str | None = None) -> str:
+    def _get_page(self, url: str, wait_for_selector: str | None = None, load_more_selector: str | None = None) -> str:
         """Internal method to fetch page content with error handling"""
         raise NotImplementedError("_get_page method must be implemented by subclasses")
     

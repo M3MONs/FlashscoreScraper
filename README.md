@@ -26,6 +26,9 @@ result = scrape_odds(
 # Scrape main event data
 event = scrape_event("https://www.flashscore.com/match/football/abc123/")
 
+# Scrape main event data with match statistics in the "stats" field (raises ValueError if unavailable)
+event = scrape_event("https://www.flashscore.com/match/football/abc123/", with_stats=True)
+
 # Scrape extended event info (standings, h2h, draw, …)
 info = scrape_event_info("https://www.flashscore.com/match/football/abc123/")
 ```
@@ -55,7 +58,7 @@ uv run main.py odds <url> [--odds <type> ...] [--bookmakers <id> ...] [--sport <
 
 ### Scrape Event Information
 ```
-uv run main.py event <url> [--sport <sport>] [--engine <engine>] [--timeout <seconds>]
+uv run main.py event <url> [--with-stats] [--sport <sport>] [--engine <engine>] [--timeout <seconds>]
 ```
 
 ### Scrape Event Context Information
@@ -80,6 +83,12 @@ uv run main.py event-info <url> [--sport <sport>] [--engine <engine>] [--timeout
 | `--odds` | One or more odds types to scrape. Scrapes all types when omitted. | all |
 | `--bookmakers` | Bookmaker IDs to include (e.g. `2 16 17`). Includes all bookmakers when omitted. | all |
 
+### `event`-only Options
+
+| Option | Description | Default |
+|---|---|---|
+| `--with-stats` | Include match statistics in the `stats` field, grouped by section (e.g. `Top stats`, `Shots`). Supported sports: `football`. Returns an error for unsupported sports or events without stats (e.g. not started yet). | off |
+
 ### Examples
 
 ```bash
@@ -91,6 +100,9 @@ uv run main.py odds https://www.flashscore.com/match/football/... --odds 1x2-odd
 
 # Scrape event summary
 uv run main.py event https://www.flashscore.com/match/football/...
+
+# Scrape event summary with match statistics
+uv run main.py event https://www.flashscore.com/match/football/... --with-stats
 
 # Scrape extended event info with verbose logging
 uv run main.py event-info https://www.flashscore.com/match/football/... -v
@@ -164,6 +176,10 @@ class MySportParser(BaseParser, sport_type="mysport"):
     def _parse_odds(self, url, data, odds_type, odds_filter): ...
     def _parse_event_info(self, url, data, info_type): ...
 ```
+
+### Match statistics (`--with-stats`)
+
+Stats parsers live in the independent `stats/` package and are registered **manually** in `_STATS_PARSERS` in `stats/__init__.py` (no auto-discovery). To support a new sport, add `stats/<sport>_stats_parser.py` extending `BaseStatsParser` (`url_path`, `wait_for_selector`, `parse`) and add one entry to `_STATS_PARSERS`.
 
 ## Running Tests
 

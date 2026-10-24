@@ -2,10 +2,12 @@ import argparse
 import logging
 from pathlib import Path
 
+from league.football_league_parser import FootballLeagueParser
 from models.odds.odds_factory import get_odds_enum
 from models.sports import Sports
-from utils.url_builder import FlashscoreUrlBuilder
+from stats.football_stats_parser import FootballStatsParser
 from tests.fixtures._fixture_helpers import fetch_and_save
+from utils.url_builder import LEAGUE_SECTIONS, FlashscoreUrlBuilder
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,26 +25,45 @@ FIXTURE_CONFIGS = {
         "standings": [
             {"url": "https://www.flashscore.com/match/football/las-palmas-IyRQC2vM/real-madrid-W8mj7MDD/standings/standings/overall/?mid=CE0hJiFM"},
         ],
+        "stats": [
+            {
+                "url": FlashscoreUrlBuilder.build_event_info_url(
+                    "https://www.flashscore.com/match/football/aston-villa-W00wmLO0/west-ham-Cxq57r8g/?mid=U7CL8Og5", FootballStatsParser.url_path
+                ),
+                "wait_for_selector": FootballStatsParser.wait_for_selector,
+            },
+        ],
+        "league": [
+            {"url": "https://www.flashscore.com/football/germany/bundesliga/"},
+        ],
     },
 }
 
 
-def build_items(config: dict, save_dir: Path, sport: Sports) -> list[tuple[str, Path]]:
-    items: list[tuple[str, Path]] = []
+def build_items(config: dict, save_dir: Path, sport: Sports) -> list[tuple[str, Path, str | None]]:
+    items: list[tuple[str, Path, str | None]] = []
 
     for entry in config.get("event", []):
-        items.append((entry["url"], save_dir / "event.html"))
+        items.append((entry["url"], save_dir / "event.html", None))
 
     for entry in config.get("odds", []):
         for odds_type in get_odds_enum(sport.value):
             odds_url = FlashscoreUrlBuilder.build_odds_url(entry["url"], odds_type.value)
-            items.append((odds_url, save_dir / f"odds_{odds_type.value}.html"))
+            items.append((odds_url, save_dir / f"odds_{odds_type.value}.html", None))
 
     for entry in config.get("draw", []):
-        items.append((entry["url"], save_dir / "event_info_draw.html"))
+        items.append((entry["url"], save_dir / "event_info_draw.html", None))
 
     for entry in config.get("standings", []):
-        items.append((entry["url"], save_dir / "event_info_standings.html"))
+        items.append((entry["url"], save_dir / "event_info_standings.html", None))
+
+    for entry in config.get("stats", []):
+        items.append((entry["url"], save_dir / "stats.html", entry.get("wait_for_selector")))
+
+    for entry in config.get("league", []):
+        for section in LEAGUE_SECTIONS:
+            league_url = FlashscoreUrlBuilder.build_league_url(sport.value, entry["url"], section)
+            items.append((league_url, save_dir / f"league_{section}.html", FootballLeagueParser.match_selector))
 
     return items
 
